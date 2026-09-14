@@ -10,6 +10,10 @@ public struct ObserveOptions: Sendable {
     /// Terminal path of the events endpoint. Override only when a proxy mounts ingestion under a
     /// custom path; the project id is always appended.
     public var apiEventPath: String
+    /// Config endpoint path on the same API base/proxy; the project id is appended.
+    public var apiConfigPath: String
+    /// Optional per-field reliability policy overrides.
+    public var sdkConfig: SdkConfigOverrides?
     /// Verbose logging (silent warnings/errors otherwise).
     public var debug: Bool
     /// Tags automatically attached to every event.
@@ -28,11 +32,15 @@ public struct ObserveOptions: Sendable {
         debug: Bool = false,
         defaultTags: [String: String] = [:],
         applicationId: String? = nil,
-        flushOnBackground: Bool = true
+        flushOnBackground: Bool = true,
+        apiConfigPath: String = "/v1/observe/config",
+        sdkConfig: SdkConfigOverrides? = nil
     ) {
         self.projectId = projectId
         self.apiBaseUrl = apiBaseUrl
         self.apiEventPath = apiEventPath
+        self.apiConfigPath = apiConfigPath
+        self.sdkConfig = sdkConfig
         self.debug = debug
         self.defaultTags = defaultTags
         self.applicationId = applicationId
@@ -97,5 +105,15 @@ extension ObserveOptions {
             let scheme = url.scheme, scheme == "http" || scheme == "https", url.host != nil
         else { return nil }
         return url
+    }
+}
+
+extension ObserveOptions {
+    var configURL: URL? {
+        guard var components = URLComponents(string: "\(apiBaseUrl)\(apiConfigPath)/\(projectId)"),
+            let scheme = components.scheme, scheme == "http" || scheme == "https", components.host != nil
+        else { return nil }
+        components.queryItems = [URLQueryItem(name: "sdkName", value: Sdk.name)]
+        return components.url
     }
 }

@@ -3,15 +3,12 @@ import Foundation
 /// Server-driven SDK reliability config — the mechanism for changing SDK behavior in the field
 /// without app releases (risky behavior ships dark, defaults are conservative).
 ///
-/// The SDK opts in by sending `X-Corbado-Observe-Config: <version|1>` on event requests; the
-/// server answers 200 with a config body (204 when the echoed version is current). The config
-/// resolved at process start (from the UserDefaults cache) is the boot snapshot for the whole
-/// process lifetime; a config received mid-run is only cached for the NEXT start.
+/// Cached policy is available immediately; a separate GET refreshes and applies it live.
 ///
 /// Parsing is defensive: unknown fields are ignored and missing fields keep their defaults,
 /// clamped to sane bounds — a malformed config can never disable delivery or produce a hot loop.
 struct SdkConfig: Sendable {
-    /// Content-derived version assigned by the server; echoed in the request header.
+    /// Content-derived version assigned by the server and attached to batch metadata.
     var version: String = ""
     /// How often the queue flushes, ms. Native default is battery-frugal (2s vs web's 500ms).
     var flushIntervalMs: Int64 = 2_000
@@ -36,21 +33,20 @@ struct SdkConfig: Sendable {
     var retryBaseDelayMs: Int64 = 0
     var retryMaxDelayMs: Int64 = 0
 
-    static let requestHeader = "X-Corbado-Observe-Config"
-
     static let `default` = SdkConfig()
 
     /// Parses a config response body (web- or app-shaped JSON). Returns nil when the body is
-    /// not a JSON object — the caller keeps its current config.
+    /// not a versioned JSON object — the caller keeps its current config.
     static func parse(_ body: String) -> SdkConfig? {
         guard let data = body.data(using: .utf8),
             let parsed = try? JSONSerialization.jsonObject(with: data),
-            let root = parsed as? [String: Any]
+            let root = parsed as? [String: Any],
+            let version = root["version"] as? String, !version.isEmpty
         else { return nil }
         let defaults = SdkConfig.default
 
         var config = SdkConfig()
-        config.version = string(root, "version") ?? ""
+        config.version = version
         config.flushIntervalMs = clamp(long(root, "flushIntervalMs") ?? defaults.flushIntervalMs, 200, 60_000)
         config.sessionInactivityMs = clamp(
             long(root, "sessionInactivityMs") ?? defaults.sessionInactivityMs, 60_000, 24 * 60 * 60 * 1_000)
@@ -93,14 +89,6 @@ struct SdkConfig: Sendable {
             return Int64(value)
         case let value as NSNumber: return value.int64Value
         case let value as String: return Int64(value)
-        default: return nil
-        }
-    }
-
-    private static func string(_ object: [String: Any], _ key: String) -> String? {
-        switch object[key] {
-        case let value as String: return value
-        case let value as NSNumber: return value.stringValue
         default: return nil
         }
     }

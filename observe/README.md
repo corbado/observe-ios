@@ -49,3 +49,38 @@ fill and every system sheet show up there. See `docs/as-af-signal-spec.md` for w
 
 See [`examples/observe`](../examples/observe/) for a runnable app,
 [TASKS.md](../TASKS.md) / [limitations](../docs/LIMITATIONS.md) for status.
+
+## Reliability configuration
+
+The SDK starts immediately with its last-known cached policy (or native defaults). It fetches
+`GET /v1/observe/config/{projectId}?sdkName=observe-ios` independently of event delivery, then
+applies valid policy live and caches it for the next launch. Event requests no longer negotiate
+configuration or consume configuration response bodies. The backend must support the `sdkName`
+selector so native clients receive app policy; deploy that backend support before releasing this SDK.
+
+Config requests have a 10-second timeout and retry transient network errors, 408, 429 and 5xx
+responses after 1 second and then 3 seconds. A `Retry-After` header suppresses these immediate
+HTTP retries. Other HTTP errors, malformed JSON and missing/empty policy versions wait for the
+next regular refresh. Refresh runs every 10 minutes from the start of the previous refresh,
+independently of its retries; failure keeps the last-known policy. Shutdown cancels config work
+without waiting for it. Public calls, event recording and ingestion keep running during config I/O.
+
+Use `apiConfigPath` to mount configuration under a proxy path on the same `apiBaseUrl`:
+
+```swift
+ObserveOptions(
+    projectId: "pro-...",
+    apiBaseUrl: "https://auth.example.com",
+    apiConfigPath: "/observe/config",
+    sdkConfig: SdkConfigOverrides(
+        telemetry: false,
+        retry: RetryConfigOverrides(maxAttempts: 3)
+    )
+)
+```
+
+Explicit `sdkConfig` fields override server policy and defaults; retry fields merge individually.
+A complete override (every native policy field, version and all retry fields) skips both config
+fetching and its cache. The existing `flushOnBackground: false` option remains a host-side veto.
+Native durable event storage and session continuity remain always enabled. A live update preserves
+queued events and session identity and does not restart an active delivery or shorten its backoff.

@@ -9,7 +9,7 @@ final class CapturingTransport: Transporting {
 
     let batches = Locked<[WireEventBatch]>([])
 
-    func send(_ batch: WireEventBatch, configVersionHeader: String?) async -> TransportResult {
+    func send(_ batch: WireEventBatch) async -> TransportResult {
         batches.withLock { $0.append(batch) }
         return TransportResult(statusCode: 200)
     }
@@ -26,7 +26,7 @@ private actor GatedTransport: Transporting {
     private var response: CheckedContinuation<TransportResult, Never>?
     private(set) var batches: [WireEventBatch] = []
 
-    func send(_ batch: WireEventBatch, configVersionHeader: String?) async -> TransportResult {
+    func send(_ batch: WireEventBatch) async -> TransportResult {
         batches.append(batch)
         if batches.count == 1 {
             return await withCheckedContinuation { response = $0 }
@@ -79,6 +79,112 @@ private actor GatedTransport: Transporting {
             previous.destroy()
             await previous.awaitTermination()
         }
+    }
+
+    @Test func configFetchDoesNotBlockStartupRecordingOrIngestionAndAppliesLive() async throws {
+        let network = GatedConfigTransport()
+        let transport = CapturingTransport()
+        let options = ObserveOptions(
+            projectId: "pro-test", apiBaseUrl: "https://example.invalid",
+            sdkConfig: SdkConfigOverrides(telemetry: false, retry: RetryConfigOverrides(maxAttempts: 2)))
+        let tracker = ObserveTracker(options: options, transport: transport, configTransport: network)
+        Self.lastTracker.value = tracker
+        tracker.start()
+        await eventually { await network.requests == 1 }
+        tracker.trackCustom("while_config_pending")
+        tracker.flush()
+        await eventually { transport.events.count == 1 }
+        let first = try #require(transport.events.first)
+        let session = try #require(tracker.getSessionId())
+        #expect(first.seq == 0)
+        tracker.setTransportEnabled(false)
+        tracker.trackCustom("queued_before_policy")
+        let remote = """
+            {"version":"live","flushIntervalMs":200,"telemetry":true,"lows":false,
+             "retry":{"maxAttempts":3,"baseDelayMs":10,"maxDelayMs":100}}
+            """
+        await network.release(ConfigResponse(statusCode: 200, body: remote))
+        await eventually { UserDefaults(suiteName: "corbado_observe")?.string(forKey: "cbo_sdk_config") == remote }
+        #expect(tracker.getSessionId() == session)
+        tracker.telemetry(level: "info", message: "overridden off")
+        tracker.low("remote-disabled")
+        tracker.setTransportEnabled(true)
+        await eventually { transport.events.count == 2 }
+        #expect(transport.events.map(\.seq) == [0, 1])
+        #expect(Set(transport.batches.value.map(\.sessionID)) == [session])
+        #expect(transport.batches.value.last?.meta?.configVersion == "live")
+        #expect(transport.telemetry.isEmpty)
+        #expect(transport.lows.isEmpty)
+        tracker.trackCustom("new_timer")
+        // No explicit flush: the refreshed 200ms periodic timer must deliver this event.
+        for _ in 0..<100 {
+            if transport.events.count == 3 { break }
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        #expect(transport.events.count == 3)
+        tracker.destroy()
+        await tracker.awaitTermination()
+    }
+
+    @Test func actualConfigURLSessionDoesNotBlockIngestAndCancelsOnShutdown() async throws {
+        let url = try #require(URL(string: "https://stalled.example/config/pro-test"))
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [GatedConfigURLProtocol.self]
+        let network = HttpConfigTransport(url: url, configuration: configuration)
+        let transport = CapturingTransport()
+        let tracker = ObserveTracker(
+            options: ObserveOptions(projectId: "pro-test", apiBaseUrl: "https://example.invalid"),
+            transport: transport, configTransport: network)
+        Self.lastTracker.value = tracker
+        tracker.start()
+        await eventually { GatedConfigURLProtocol.started.value.contains(url) }
+        tracker.trackCustom("during_real_config_request")
+        tracker.flush()
+        await eventually { transport.events.count == 1 }
+        #expect(tracker.getSessionId() != nil)
+        #expect(!GatedConfigURLProtocol.stopped.value.contains(url))
+        tracker.destroy()
+        await tracker.awaitTermination()
+        await eventually { GatedConfigURLProtocol.stopped.value.contains(url) }
+        #expect(transport.events.map(\.name) == ["during_real_config_request"])
+        #expect(UserDefaults(suiteName: "corbado_observe")?.string(forKey: "cbo_sdk_config") == nil)
+    }
+
+    @Test func shutdownDoesNotWaitForConfigAndLateResponseCannotWriteCache() async {
+        let network = GatedConfigTransport()
+        let tracker = ObserveTracker(
+            options: ObserveOptions(projectId: "pro-test", apiBaseUrl: "https://example.invalid"),
+            transport: CapturingTransport(), configTransport: network)
+        Self.lastTracker.value = tracker
+        tracker.start()
+        await eventually { await network.requests == 1 }
+        tracker.destroy()
+        await tracker.awaitTermination()
+        await network.release(ConfigResponse(statusCode: 200, body: #"{"version":"late"}"#))
+        #expect(UserDefaults(suiteName: "corbado_observe")?.string(forKey: "cbo_sdk_config") == nil)
+    }
+
+    @Test func completeOverridesBypassCacheAndFetch() async {
+        let cached = #"{"version":"cached","telemetry":false}"#
+        UserDefaults(suiteName: "corbado_observe")?.set(cached, forKey: "cbo_sdk_config")
+        let network = GatedConfigTransport()
+        let transport = CapturingTransport()
+        let overrides = SdkConfigOverrides(
+            version: "local", flushIntervalMs: 2_000, sessionInactivityMs: 1_800_000,
+            telemetry: true, flushOnTelemetry: false, flushOnFlowTypeFinished: [],
+            deviceInfoCollectorTimeoutMs: 1_000, flushOnBackground: true, lows: true,
+            retry: RetryConfigOverrides(maxAttempts: 1, baseDelayMs: 0, maxDelayMs: 0))
+        let tracker = ObserveTracker(
+            options: ObserveOptions(projectId: "pro-test", apiBaseUrl: "https://example.invalid", sdkConfig: overrides),
+            transport: transport, configTransport: network)
+        Self.lastTracker.value = tracker
+        tracker.start()
+        tracker.trackCustom("local")
+        tracker.destroy()
+        await tracker.awaitTermination()
+        #expect(await network.requests == 0)
+        #expect(transport.batches.value.first?.meta?.configVersion == "local")
+        #expect(UserDefaults(suiteName: "corbado_observe")?.string(forKey: "cbo_sdk_config") == cached)
     }
 
     @Test func overlappingBackgroundFlushesFinishAfterDelivery() async {

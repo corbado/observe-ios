@@ -36,7 +36,7 @@ final class ObservePrefs {
         set { defaults.set(Double(newValue), forKey: Self.keyClientEnvHandleTs) }
     }
 
-    /// Cached SDK reliability config JSON (raw response body), applied as boot snapshot next start.
+    /// Last-known remote policy JSON, used immediately on the next start and refreshed independently.
     var sdkConfigJson: String? {
         get { defaults.string(forKey: Self.keySdkConfig) }
         set { defaults.set(newValue, forKey: Self.keySdkConfig) }
