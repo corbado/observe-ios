@@ -33,7 +33,9 @@ public enum CorbadoObserve {
             logger.error("apiBaseUrl must not end with '/'; SDK stays disabled")
             return nil
         }
-        if options.projectId.trimmingCharacters(in: .whitespaces).isEmpty || options.eventsURL == nil {
+        if options.projectId.trimmingCharacters(in: .whitespaces).isEmpty || options.eventsURL == nil
+            || options.configURL == nil
+        {
             logger.error("invalid options: projectId and an http(s) apiBaseUrl are required; SDK stays disabled")
             return nil
         }
