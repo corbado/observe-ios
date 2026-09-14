@@ -62,6 +62,7 @@ class GatedConfigURLProtocol: URLProtocol, @unchecked Sendable {
 }
 
 extension ConfigTransportTests {
+    @available(iOS 16.0, *)
     @Test(.timeLimit(.minutes(1))) func stalledURLSessionHonorsTenSecondResourceTimeout() async throws {
         let url = try #require(URL(string: "https://timeout.example/config/pro-test"))
         let configuration = URLSessionConfiguration.ephemeral
@@ -77,6 +78,7 @@ extension ConfigTransportTests {
         await eventually { GatedConfigURLProtocol.stopped.value.contains(url) }
         transport.shutdown()
     }
+    @available(iOS 16.0, *)
     @Test(.timeLimit(.minutes(1))) func shutdownRacingRequestCreationNeverUsesInvalidatedSession() async throws {
         let url = try #require(URL(string: "https://shutdown-race.example/config/pro-test"))
         for _ in 0..<50 {
