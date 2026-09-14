@@ -16,7 +16,7 @@ private final class ShutdownTransport: Transporting {
 
     init(failures: Int) { self.failures = failures }
 
-    func send(_ batch: WireEventBatch, configVersionHeader: String?) async -> TransportResult {
+    func send(_ batch: WireEventBatch) async -> TransportResult {
         lifecycle.withLock { $0.append("send") }
         let count = attempts.withLock {
             $0.append(Attempt(batch: batch, time: DispatchTime.now().uptimeNanoseconds))
@@ -30,7 +30,8 @@ extension TrackerIntegrationTests {
     @Test(arguments: [1, 5], [false, true])
     func shutdownUsesNormalRetryChain(failures: Int, alreadyBackingOff: Bool) async {
         ObservePrefs().sdkConfigJson = """
-            {"flushIntervalMs":60000,"retry":{"maxAttempts":3,"baseDelayMs":200,"maxDelayMs":400}}
+            {"version":"retry-test","flushIntervalMs":60000,
+             "retry":{"maxAttempts":3,"baseDelayMs":200,"maxDelayMs":400}}
             """
         let transport = ShutdownTransport(failures: failures)
         let tracker = ObserveTracker(
@@ -72,7 +73,8 @@ extension TrackerIntegrationTests {
 
     @Test func replacementWaitsForPriorShutdownBeforeOpeningOutbox() async {
         ObservePrefs().sdkConfigJson = """
-            {"flushIntervalMs":60000,"retry":{"maxAttempts":3,"baseDelayMs":200,"maxDelayMs":400}}
+            {"version":"retry-test","flushIntervalMs":60000,
+             "retry":{"maxAttempts":3,"baseDelayMs":200,"maxDelayMs":400}}
             """
         let options = ObserveOptions(projectId: "pro-test", apiBaseUrl: "https://example.invalid")
         let oldTransport = ShutdownTransport(failures: 1)
@@ -97,4 +99,41 @@ extension TrackerIntegrationTests {
         #expect(oldTransport.attempts.value.count == 2)
         #expect(newTransport.events.map(\.name) == ["replacement"])
     }
+    @Test func livePolicyKeepsExistingDeliveryBackoffAndSession() async {
+        ObservePrefs().sdkConfigJson = """
+            {"version":"cached","flushIntervalMs":60000,
+             "retry":{"maxAttempts":3,"baseDelayMs":200,"maxDelayMs":400}}
+            """
+        let network = GatedConfigTransport()
+        let transport = ShutdownTransport(failures: 1)
+        let tracker = ObserveTracker(
+            options: ObserveOptions(projectId: "pro-test", apiBaseUrl: "https://example.invalid"),
+            transport: transport, configTransport: network)
+        tracker.start()
+        await eventually { await network.requests == 1 }
+        tracker.trackCustom("before_policy")
+        tracker.flush()
+        await eventually { transport.attempts.value.count == 1 }
+        let session = tracker.getSessionId()
+        let body = """
+            {"version":"live","flushIntervalMs":200,
+             "retry":{"maxAttempts":3,"baseDelayMs":0,"maxDelayMs":0}}
+            """
+        await network.release(ConfigResponse(statusCode: 200, body: body))
+        await eventually { UserDefaults(suiteName: "corbado_observe")?.string(forKey: "cbo_sdk_config") == body }
+        tracker.trackCustom("after_policy")
+        tracker.flush()
+        tracker.destroy()
+        await tracker.awaitTermination()
+        let attempts = transport.attempts.value
+        #expect(attempts.count == 2)
+        #expect(attempts[1].time - attempts[0].time >= 200_000_000)
+        #expect(attempts[1].batch.meta?.configVersion == "live")
+        #expect(attempts[1].batch.meta?.retryCount == 1)
+        #expect(attempts[1].batch.events.map(\.name) == ["before_policy", "after_policy"])
+        #expect(attempts[1].batch.events.first?.id == attempts[0].batch.events.first?.id)
+        #expect(attempts.allSatisfy { $0.batch.sessionID == session })
+        #expect(tracker.getSessionId() == session)
+    }
+
 }

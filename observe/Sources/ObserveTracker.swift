@@ -24,7 +24,10 @@ public final class ObserveTracker: Sendable {
 
     let autofillEngine = AutofillEngine()
 
-    init(options: ObserveOptions, transport: (any Transporting)? = nil) {
+    init(
+        options: ObserveOptions, transport: (any Transporting)? = nil,
+        configTransport: (any ConfigTransporting)? = nil
+    ) {
         self.options = options
         let logger = ObserveLogger(debug: options.debug)
         self.logger = logger
@@ -37,6 +40,7 @@ public final class ObserveTracker: Sendable {
             logger: logger,
             transport: transport
                 ?? HttpTransport(url: options.eventsURL!, logger: logger),  // validated at initialize
+            configTransport: configTransport,
             configBox: configBox,
             sessionIdBox: sessionIdBox,
             signal: { queueSignal in

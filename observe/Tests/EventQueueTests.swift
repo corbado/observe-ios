@@ -8,7 +8,7 @@ private final class RejectingTransport: Transporting {
 
     let batches = Locked<[WireEventBatch]>([])
 
-    func send(_ batch: WireEventBatch, configVersionHeader: String?) async -> TransportResult {
+    func send(_ batch: WireEventBatch) async -> TransportResult {
         batches.withLock { $0.append(batch) }
         return TransportResult(statusCode: 400)
     }
@@ -26,7 +26,7 @@ private final class RejectingTransport: Transporting {
             transport: transport, outbox: outbox, config: { .default },
             sdkInfo: WireSdkInfo(name: "observe-ios", version: "test"),
             telemetryBuffer: telemetry, lowBuffer: lows, logger: ObserveLogger(debug: false),
-            onConfigReceived: { _ in }, signal: { _ in })
+            signal: { _ in })
         lows.report(WireLowEvent(lowType: "input", ts: 1))
         telemetry.report("info", "original evidence")
         await queue.flush(.manual)
