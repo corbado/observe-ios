@@ -2,7 +2,7 @@ import Foundation
 
 /// The SDK's single serialization domain — the port of the Android SDK's dedicated
 /// `corbado-observe` thread. All mutable tracking state (session, buffers, outbox, queue,
-/// config snapshot) lives here; the public `ObserveTracker` posts ordered jobs into it via its
+/// live config) lives here; the public `ObserveTracker` posts ordered jobs into it via its
 /// mailbox and never blocks the caller.
 actor TrackerCore {
     let logger: ObserveLogger
@@ -10,7 +10,7 @@ actor TrackerCore {
     private let options: ObserveOptions
     private let prefs = ObservePrefs()
 
-    /// Boot snapshot mirror: written once in `start()`, read synchronously by the lifecycle
+    /// Live policy mirror, read synchronously by the lifecycle
     /// watcher and the buffers' gate closures (the port of Android's `@Volatile` config).
     private let configBox: Locked<SdkConfig>
     private let sessionIdBox: Locked<String?>
@@ -20,6 +20,8 @@ actor TrackerCore {
     let lowBuffer: LowBuffer
     private let outbox: Outbox
     private let queue: EventQueue
+    private let configManager: ConfigManager?
+    private var stopped = false
     private var deliveryTask: Task<Void, Never>?
     private var deliveryCompletions: [@Sendable () -> Void] = []
 
@@ -33,6 +35,7 @@ actor TrackerCore {
         options: ObserveOptions,
         logger: ObserveLogger,
         transport: any Transporting,
+        configTransport: (any ConfigTransporting)? = nil,
         configBox: Locked<SdkConfig>,
         sessionIdBox: Locked<String?>,
         signal: @escaping @Sendable (QueueSignal) -> Void
@@ -42,6 +45,11 @@ actor TrackerCore {
         self.logger = logger
         self.configBox = configBox
         self.sessionIdBox = sessionIdBox
+        configManager =
+            options.sdkConfig?.isComplete == true
+            ? nil
+            : ConfigManager(
+                transport: configTransport ?? HttpConfigTransport(url: options.configURL!), logger: logger)
 
         session = SessionManager(prefs: prefs, inactivityWindowMs: { configBox.value.sessionInactivityMs })
         telemetryBuffer = TelemetryBuffer(
@@ -58,7 +66,6 @@ actor TrackerCore {
             },
             logger: logger)
 
-        let prefs = prefs
         queue = EventQueue(
             transport: transport,
             outbox: outbox,
@@ -67,14 +74,13 @@ actor TrackerCore {
             telemetryBuffer: telemetryBuffer,
             lowBuffer: lowBuffer,
             logger: logger,
-            onConfigReceived: { body in prefs.sdkConfigJson = body },
             signal: signal)
     }
 
     func start() {
-        // First disk access of the SDK: resolve the config boot snapshot (must precede
-        // everything that reads config, i.e. session rotation and the queue timer).
-        configBox.value = prefs.sdkConfigJson.flatMap(SdkConfig.parse) ?? .default
+        // Resolve local policy before session bootstrap; remote I/O never holds the mailbox.
+        let cached = configManager == nil ? nil : prefs.sdkConfigJson.flatMap(SdkConfig.parse)
+        configBox.value = (options.sdkConfig ?? SdkConfigOverrides()).resolve(over: cached)
 
         session.start()
         sessionIdBox.value = session.sessionId
@@ -89,6 +95,23 @@ actor TrackerCore {
         clientEnvHandleCreatedAt = prefs.clientEnvHandleCreatedAt
 
         queue.start()
+        if let configManager {
+            Task {
+                await configManager.start { [weak self] config, body in
+                    await self?.applyConfig(config, body: body)
+                }
+            }
+        }
+    }
+
+    private func applyConfig(_ config: SdkConfig, body: String) {
+        guard !stopped else { return }
+        prefs.sdkConfigJson = body
+        let previousInterval = configBox.value.flushIntervalMs
+        configBox.value = (options.sdkConfig ?? SdkConfigOverrides()).resolve(over: config)
+        if previousInterval != configBox.value.flushIntervalMs { queue.updateConfig() }
+        // Native outbox durability and session continuity are always enabled. Updating policy
+        // never recreates either owner, rotates identity, or interrupts an active delivery retry.
     }
 
     func setDeviceInfo(_ data: WireDeviceInfoDataApp) {
@@ -183,6 +206,8 @@ actor TrackerCore {
         // This is the final mailbox job: all accepted events have reached the outbox.
         // The normal delivery task owns its entire retry chain, including backoff. Join it
         // if already running; otherwise start a drain for any still-pending events.
+        stopped = true
+        await configManager?.stop()
         queue.stopTimer()
         flush(.destroy)
         await deliveryTask?.value

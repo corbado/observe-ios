@@ -4,14 +4,12 @@ import Foundation
 protocol Transporting: Sendable {
     /// Release transport resources after the final delivery/retry chain has finished.
     func shutdown()
-    func send(_ batch: WireEventBatch, configVersionHeader: String?) async -> TransportResult
+    func send(_ batch: WireEventBatch) async -> TransportResult
 }
 
 struct TransportResult: Sendable {
     /// HTTP status, or nil when the request never produced a response (network error).
     var statusCode: Int?
-    /// Raw config body (cached verbatim for the next boot snapshot); only set when it parses.
-    var configBody: String?
 }
 
 /// Event delivery over a private ephemeral `URLSession` — no cookies, no cache, no third-party
@@ -35,7 +33,7 @@ final class HttpTransport: Transporting {
         session = URLSession(configuration: configuration)
     }
 
-    func send(_ batch: WireEventBatch, configVersionHeader: String?) async -> TransportResult {
+    func send(_ batch: WireEventBatch) async -> TransportResult {
         guard let body = try? WireJson.encoder.encode(batch) else {
             return TransportResult(statusCode: nil)
         }
@@ -43,21 +41,13 @@ final class HttpTransport: Transporting {
         request.httpMethod = "POST"
         request.httpBody = body
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if let configVersionHeader {
-            request.setValue(configVersionHeader, forHTTPHeaderField: SdkConfig.requestHeader)
-        }
 
         do {
-            let (data, response) = try await session.data(for: request)
+            let (_, response) = try await session.data(for: request)
             guard let status = (response as? HTTPURLResponse)?.statusCode else {
                 return TransportResult(statusCode: nil)
             }
-            var configBody: String?
-            if status == 200, configVersionHeader != nil {
-                // Only a body that parses is worth caching as the next boot snapshot.
-                configBody = String(data: data, encoding: .utf8).flatMap { SdkConfig.parse($0) != nil ? $0 : nil }
-            }
-            return TransportResult(statusCode: status, configBody: configBody)
+            return TransportResult(statusCode: status)
         } catch {
             logger.debug("send failed: \(error.localizedDescription)")
             return TransportResult(statusCode: nil)

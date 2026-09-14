@@ -39,7 +39,11 @@ import Testing
     @Test func clampsHostileValues() throws {
         let config = try #require(
             SdkConfig.parse(
-                #"{"flushIntervalMs":1,"sessionInactivityMs":1,"retry":{"maxAttempts":99,"baseDelayMs":-5}}"#))
+                """
+                {"version":"v1","flushIntervalMs":1,"sessionInactivityMs":1,
+                 "retry":{"maxAttempts":99,"baseDelayMs":-5}}
+                """
+            ))
         #expect(config.flushIntervalMs == 200)
         #expect(config.sessionInactivityMs == 60_000)
         #expect(config.retryMaxAttempts == 10)
@@ -47,7 +51,7 @@ import Testing
     }
 
     @Test func unknownFieldsAndMissingFieldsKeepDefaults() throws {
-        let config = try #require(SdkConfig.parse(#"{"someFutureField":{"a":1}}"#))
+        let config = try #require(SdkConfig.parse(#"{"version":"v1","someFutureField":{"a":1}}"#))
         #expect(config.flushIntervalMs == SdkConfig.default.flushIntervalMs)
         #expect(config.telemetry == SdkConfig.default.telemetry)
     }
@@ -60,9 +64,37 @@ import Testing
     @Test(arguments: ["1e100", "9223372036854775808", "1.7976931348623157e308", "-1e100"])
     func outOfRangeJsonNumbersClampWithoutTrapping(value: String) throws {
         let config = try #require(
-            SdkConfig.parse("{\"sessionInactivityMs\":\(value),\"retry\":{\"maxAttempts\":\(value)}}"))
+            SdkConfig.parse(
+                "{\"version\":\"v1\",\"sessionInactivityMs\":\(value),\"retry\":{\"maxAttempts\":\(value)}}"))
         #expect(config.sessionInactivityMs == (value.hasPrefix("-") ? 60_000 : 86_400_000))
         #expect(config.retryMaxAttempts == (value.hasPrefix("-") ? 1 : 10))
+    }
+
+    @Test func partialOverridesWinPerRetryFieldAndKeepNativeDefaults() throws {
+        let remote = try #require(
+            SdkConfig.parse(
+                """
+                {"version":"server","flushIntervalMs":6000,"telemetry":false,
+                 "retry":{"maxAttempts":5,"baseDelayMs":200,"maxDelayMs":5000}}
+                """))
+        let overrides = SdkConfigOverrides(
+            telemetry: true, retry: RetryConfigOverrides(maxAttempts: 2))
+        let resolved = overrides.resolve(over: remote)
+        #expect(!overrides.isComplete)
+        #expect(resolved.version == "server")
+        #expect(resolved.flushIntervalMs == 6000)
+        #expect(resolved.telemetry)
+        #expect(resolved.retryMaxAttempts == 2)
+        #expect(resolved.retryBaseDelayMs == 200)
+        #expect(resolved.retryMaxDelayMs == 5000)
+        #expect(SdkConfigOverrides().resolve(over: nil).retryBaseDelayMs == 0)
+    }
+
+    @Test func configEndpointUsesProxyPathAndNativePolicySelector() {
+        let options = ObserveOptions(
+            projectId: "pro-test", apiBaseUrl: "https://proxy.example", apiConfigPath: "/auth/config")
+        #expect(options.configURL?.absoluteString == "https://proxy.example/auth/config/pro-test?sdkName=observe-ios")
+        #expect(options.eventsURL?.absoluteString == "https://proxy.example/v1/observe/events/pro-test")
     }
 
 }

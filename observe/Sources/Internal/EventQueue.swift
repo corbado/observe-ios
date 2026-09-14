@@ -39,14 +39,12 @@ enum QueueSignal: Sendable {
 final class EventQueue {
     private let transport: any Transporting
     private let outbox: Outbox
-    /// Deferred: the boot-snapshot config is resolved on the SDK actor after construction.
+    /// Live policy, read on the owning SDK actor.
     private let config: () -> SdkConfig
     private let sdkInfo: WireSdkInfo
     private let telemetryBuffer: TelemetryBuffer
     private let lowBuffer: LowBuffer
     private let logger: ObserveLogger
-    /// Invoked with the raw body of a fresh config response — cached for the next boot snapshot.
-    private let onConfigReceived: (String) -> Void
     /// Routes a wake-up back into the owning actor, which schedules delivery.
     private let signal: @Sendable (QueueSignal) -> Void
 
@@ -67,7 +65,6 @@ final class EventQueue {
         telemetryBuffer: TelemetryBuffer,
         lowBuffer: LowBuffer,
         logger: ObserveLogger,
-        onConfigReceived: @escaping (String) -> Void,
         signal: @escaping @Sendable (QueueSignal) -> Void
     ) {
         self.transport = transport
@@ -77,7 +74,6 @@ final class EventQueue {
         self.telemetryBuffer = telemetryBuffer
         self.lowBuffer = lowBuffer
         self.logger = logger
-        self.onConfigReceived = onConfigReceived
         self.signal = signal
     }
 
@@ -86,6 +82,13 @@ final class EventQueue {
         let recovered = outbox.readAll()
         pending.append(contentsOf: recovered)
 
+        updateConfig()
+        if !recovered.isEmpty { signal(.recoveryFlush) }
+    }
+
+    /// Restart only the periodic timer; pending events and the delivery task's backoff stay intact.
+    func updateConfig() {
+        timerTask?.cancel()
         let signal = signal
         let intervalMs = config().flushIntervalMs
         timerTask = Task {
@@ -94,10 +97,6 @@ final class EventQueue {
                 guard !Task.isCancelled else { return }
                 signal(.timerTick)
             }
-        }
-
-        if !recovered.isEmpty {
-            signal(.recoveryFlush)
         }
     }
 
@@ -123,9 +122,9 @@ final class EventQueue {
     }
 
     private func drain(_ reason: FlushReason, isolation: isolated (any Actor)?) async {
-        let cfg = config()
         var flushReason = reason
         while transportEnabled {
+            let cfg = config()
             let telemetry = telemetryBuffer.peek()
             let lows = lowBuffer.peek()
             if pending.isEmpty, telemetry.isEmpty, lows.isEmpty { return }
@@ -147,8 +146,7 @@ final class EventQueue {
                 )
             )
 
-            let result = await transport.send(batch, configVersionHeader: cfg.version.isEmpty ? "1" : cfg.version)
-            if let configBody = result.configBody { onConfigReceived(configBody) }
+            let result = await transport.send(batch)
 
             let status = result.statusCode
             switch status {
