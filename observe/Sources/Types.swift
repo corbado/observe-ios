@@ -59,9 +59,19 @@ public struct StepOptions: Sendable {
     /// Override the capture timestamp (unix ms); defaults to now.
     public var explicitTimestamp: Int64?
 
-    public init(userReference: UserReference? = nil, explicitTimestamp: Int64? = nil) {
+    /// Optional diagnostic for error steps only. Requires effective `rawErrors: true` policy.
+    public var rawError: RawError?
+    /// Serialization bounds; stack transmission is opt-in.
+    public var rawErrorLimits: RawErrorOptions
+
+    public init(
+        userReference: UserReference? = nil, explicitTimestamp: Int64? = nil,
+        rawError: RawError? = nil, rawErrorLimits: RawErrorOptions = RawErrorOptions()
+    ) {
         self.userReference = userReference
         self.explicitTimestamp = explicitTimestamp
+        self.rawError = rawError
+        self.rawErrorLimits = rawErrorLimits
     }
 }
 

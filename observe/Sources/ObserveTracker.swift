@@ -498,7 +498,9 @@ public final class ObserveTracker: Sendable {
                 user: user,
                 tags: merged.isEmpty ? nil : merged,
                 screen: screen,
-                finishedFlowName: finishedFlowName)
+                finishedFlowName: finishedFlowName,
+                rawError: name == .subflowStepError ? stepOptions?.rawError : nil,
+                rawErrorLimits: stepOptions?.rawErrorLimits ?? RawErrorOptions())
         }
     }
 

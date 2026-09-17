@@ -1,3 +1,4 @@
+import CoreFoundation
 import Foundation
 
 /// Server-driven SDK reliability config: the mechanism for changing SDK behavior in the field
@@ -32,6 +33,8 @@ struct SdkConfig: Sendable {
     /// gate is the integration wiring collectors at all; this is the server-side kill switch for
     /// data volume.
     var lows: Bool = true
+    /// Optional raw diagnostics; native fallback is off until policy explicitly enables it.
+    var rawErrors: Bool = false
     var retryMaxAttempts: Int = 1
     var retryBaseDelayMs: Int64 = 0
     var retryMaxDelayMs: Int64 = 0
@@ -63,6 +66,10 @@ struct SdkConfig: Sendable {
             long(root, "deviceInfoCollectorTimeoutMs") ?? defaults.deviceInfoCollectorTimeoutMs, 100, 10_000)
         config.flushOnBackground = root["flushOnBackground"] as? Bool ?? defaults.flushOnBackground
         config.lows = root["lows"] as? Bool ?? defaults.lows
+        // JSON numbers and strings must not opt an integration into diagnostics.
+        if let raw = root["rawErrors"] as? NSNumber, CFGetTypeID(raw) == CFBooleanGetTypeID() {
+            config.rawErrors = raw.boolValue
+        }
 
         let retry = root["retry"] as? [String: Any]
         config.retryMaxAttempts =

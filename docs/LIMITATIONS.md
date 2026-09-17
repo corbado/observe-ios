@@ -25,9 +25,14 @@ Known, accepted gaps of the iOS Observe SDK versus its Android/web siblings.
   app's own `cancel()` is left unreported by contract (`ConditionalUISteps`).
 - Background flush is limited to the `beginBackgroundTask` grace window; anything undelivered at
   suspension ships via outbox recovery on next launch.
-- Ceremony `error.type` is NSError `domain:code` (Android: fully-qualified exception class
-  name) — platform-inherent; the backend stores `name`/`code`/`message` only, so the flavour
-  identity today is the Swift type name plus the localized message.
+- Ceremony `error.code` preserves NSError `domain:code`; optional `rawError` diagnostics
+  include underlying-error domains/codes but do not change classification. AuthenticationServices
+  outcomes sharing the same domain/code remain indistinguishable when no further detail is supplied.
+- Swift errors do not retain throw-site stacks. Raw diagnostics only transmit explicitly supplied
+  stacks, with separate stack opt-in. Arbitrary NSError `userInfo` and Swift associated values are
+  excluded; integrations must provide an explicit JSON projection for additional fields.
+- Raw-error policy follows the existing config boot snapshot: a server response changes capture
+  at the next SDK initialization, not during the current instance. Native fallback is off.
 - `destroy()` drains with configured retries and can keep the worker alive through backoff.
   A subsequent `initialize()` queues work until that shutdown completes before opening shared
   storage; those replacement-instance calls are not durable while waiting.
