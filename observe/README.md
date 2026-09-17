@@ -126,6 +126,10 @@ passing a computed value evaluates it even when remote diagnostics are off.
 Default bounds: depth 3, breadth 30, 1,024 UTF-16 units per string, 3 cause hops,
 50 stack frames, 32 KiB of encoded JSON. `RawErrorOptions` clamps depth/cause depth to 0–10,
 breadth to 1–1,000, string length to 1–10,000, frames to 1–100 and bytes to 0–64 KiB.
+Breadth limits projected JSON objects/arrays and underlying-error arrays, excluding truncation
+markers. The fixed NSError fields and `{type, value}` envelope are exempt, matching Android/web:
+even `maxBreadth: 1` preserves the domain/code needed for attribution. Byte, string, depth and
+traversal limits still apply.
 A 1,024-node traversal budget also bounds branching graphs; NSError cycles are marked. Oversized
 values retry at lower depth, then emit a truncation marker or are omitted if even that cannot fit.
 Zero bytes omits diagnostics. Foundation-supplied errors and Sendable JSON values are supported;
