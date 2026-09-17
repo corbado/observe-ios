@@ -18,7 +18,9 @@ public struct RawErrorOptions: Sendable {
     public var maxStackFrames: Int
     /// Object nesting below the envelope: 0...10.
     public var depth: Int
-    /// Entries per object/array: 1...1,000.
+    /// Entries per projected JSON object/array and underlying-error array: 1...1,000,
+    /// excluding truncation markers. Fixed NSError fields and the envelope are exempt;
+    /// byte, string, depth and traversal limits still apply.
     public var maxBreadth: Int
     /// UTF-16 units per string, excluding the truncation marker: 1...10,000.
     public var maxValueLength: Int
