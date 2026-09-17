@@ -83,3 +83,54 @@ A complete override (every native policy field, version and all retry fields) sk
 fetching and its cache. The existing `flushOnBackground: false` option remains a host-side veto.
 Native durable event storage and session continuity remain always enabled. A live update preserves
 queued events and session identity and does not restart an active delivery or shorten its backoff.
+
+## Optional raw-error diagnostics
+
+Keep the normalized `error` for classification and attach optional diagnostics through `StepOptions`:
+
+```swift
+attempt.failed(error, options: StepOptions(rawError: .error(error)))
+// Also supported by ceremonyFailed, StepHandle.error/errorTyped and conditional-UI errors.
+```
+
+Both an explicit `rawError` input and cached server config `rawErrors: true` are required.
+The native fallback is **off**. The policy follows the live configuration described above, so
+enabling or disabling it on the server takes effect without restarting the SDK. A `rawErrors`
+override in `SdkConfigOverrides` wins over server policy. Ordinary `.error(error)` calls do not opt in.
+Diagnostics appear as `stepData.rawError = {type, value}` only on `subflow_step_error`.
+Disabled policy, non-error events and disabled collection do not traverse or serialize the input.
+Serialization runs on the SDK worker before persistence, without changing normalized errors,
+timestamps, user references or event ordering.
+
+On iOS, `.error(error)` preserves the Swift type, NSError `domain` and numeric `code`, explicit
+localized description/failure reason/recovery suggestion/debug description, and underlying errors.
+It reads only these known `userInfo` keys; URLs, file paths, binary data and arbitrary objects are
+excluded. For extra application-specific fields, supply `.value(.object([...]))` with `JSONValue`
+scalars/containers. No reflection of Swift associated values or arbitrary object descriptions occurs.
+Messages and explicit projections may contain personal data: only supply data suitable for
+transmission. The privacy manifest declares diagnostics as linked because they accompany auth events.
+
+Swift/NSError does not retain a throw-site stack. If your integration already captured one:
+
+```swift
+let options = StepOptions(
+    rawError: .error(error, stack: capturedStackFrames),
+    rawErrorLimits: RawErrorOptions(stack: true))
+attempt.failed(error, options: options)
+```
+
+The SDK never substitutes the serialization worker's stack. `stack` fields in JSON projections
+are omitted unless stack transmission is enabled too. Stack capture itself is the caller's work;
+passing a computed value evaluates it even when remote diagnostics are off.
+
+Default bounds: depth 3, breadth 30, 1,024 UTF-16 units per string, 3 cause hops,
+50 stack frames, 32 KiB of encoded JSON. `RawErrorOptions` clamps depth/cause depth to 0–10,
+breadth to 1–1,000, string length to 1–10,000, frames to 1–100 and bytes to 0–64 KiB.
+A 1,024-node traversal budget also bounds branching graphs; NSError cycles are marked. Oversized
+values retry at lower depth, then emit a truncation marker or are omitted if even that cannot fit.
+Zero bytes omits diagnostics. Foundation-supplied errors and Sendable JSON values are supported;
+custom error accessors must obey Swift's Sendable contract and must not block or raise Objective-C
+exceptions (Swift cannot catch those). No arbitrary userInfo collection is performed.
+
+`serializeRawError(_:options:)` exposes the same bounded serializer as a standalone utility.
+It has no config gate; use `StepOptions` when you want SDK policy to control serialization.
