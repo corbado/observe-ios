@@ -4,7 +4,7 @@ import Foundation
 ///
 /// - **sessionId** (long horizon): persisted with a last-activity timestamp; rotated when
 ///   inactivity exceeds the configured window. Rotation is checked at process start and on
-///   foreground transitions. Keeps one session across app launches.
+///   foreground transitions. Survives app launches until inactivity rotates it.
 /// - **processId** (short-lived): a uuidv7 minted at process start, memory-only, sent in the
 ///   `tabId` wire field so the backend can split interleaved streams of one session by process
 ///   incarnation.

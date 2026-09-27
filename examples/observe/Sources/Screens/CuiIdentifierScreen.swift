@@ -1,7 +1,7 @@
 import CorbadoObserve
 import SwiftUI
 
-/// S21–S25: Conditional UI: a passkey assertion armed with `performAutoFillAssistedRequests`
+/// S21–S25: Conditional UI. A passkey assertion armed with `performAutoFillAssistedRequests`
 /// surfaces as a QuickType chip on the identifier field. Arm timing (before / after focus), the
 /// silence cases (typing, focus loss, backgrounding), the handover to a modal request
 /// (`cancel()` first, or not; the "already in progress" hazard) and re-arming are the
