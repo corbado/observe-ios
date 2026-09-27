@@ -1,20 +1,19 @@
 import Foundation
 
-/// Social-login subflow operation. Wire vocabulary mirrors the web SDK's
-/// `SocialLoginOperationFull`; the step names are web-shaped but map directly onto native
-/// equivalents: `getRedirectUrl` is the preparation of the provider handoff
-/// (`ASWebAuthenticationSession` URL, provider SDK call — including Sign in with Apple),
-/// `exchangeCode` is redeeming the provider's result with the host backend. An Apple/Google
+/// Social-login subflow operation. The step names map directly onto native equivalents:
+/// `getRedirectUrl` is the preparation of the provider handoff (`ASWebAuthenticationSession`
+/// URL, or a provider SDK call including Sign in with Apple), `exchangeCode` is redeeming the
+/// provider's result with the host backend. An Apple/Google
 /// credential picked from a multi-option system chooser stays with `SystemCredentialOperation`;
 /// this operation is for the dedicated provider button flow.
 public final class SocialLoginOperation: OperationFull, @unchecked Sendable {
-    /// Where in the flow the social button lives (same wire values as web).
+    /// Where in the flow the social button lives (wire values).
     public enum SpecType: String, Sendable {
         case preIdentifier = "pre-identifier"
         case postIdentifier = "post-identifier"
     }
 
-    /// Social providers (same wire values as web).
+    /// Social providers (wire values).
     public enum Provider: String, Sendable {
         case google
         case apple
@@ -42,7 +41,7 @@ public final class SocialLoginOperation: OperationFull, @unchecked Sendable {
     }
 
     /// Emits `subflow_started` and remembers `provider` so `startWithProvider` can carry it
-    /// (web parity: provider rides on the step-start payloads).
+    /// (the provider rides on the step-start payloads).
     public func start(
         specType: SpecType? = nil,
         provider: Provider? = nil,

@@ -1,12 +1,11 @@
 import AuthenticationServices
 import Foundation
 
-/// Passkey-login subflow operation for passkey-ONLY assertion requests. Wire vocabulary (spec
-/// types, `ceremony`/`post-response` steps) mirrors the web SDK. Entry-screen credential sheets
-/// belong to `SystemCredentialOperation`, including sheets requesting only passkeys.
+/// Passkey-login subflow operation for passkey-ONLY assertion requests. Emits the spec types and
+/// the `ceremony`/`post-response` steps the backend classifier keys off. Entry-screen credential
+/// sheets belong to `SystemCredentialOperation`, including sheets requesting only passkeys.
 ///
-/// Emission is eager (web parity): `begin` immediately emits `subflow_started` + the ceremony
-/// start.
+/// Emission is eager: `begin` immediately emits `subflow_started` + the ceremony start.
 ///
 /// ```swift
 /// let attempt = tracker.passkeyLoginOperation().begin(
@@ -19,7 +18,7 @@ import Foundation
 /// // on failure: attempt.ceremonyFailed(error)
 /// ```
 public final class PasskeyLoginOperation: OperationFull, @unchecked Sendable {
-    /// Passkey-login spec types (same wire values as web).
+    /// Passkey-login spec types (wire values).
     public enum SpecType: String, Sendable {
         /// Identifier already known; assertion options carry an allowCredentials list.
         case knownIdentifier = "passkey-known-identifier"
@@ -32,7 +31,7 @@ public final class PasskeyLoginOperation: OperationFull, @unchecked Sendable {
     }
 
     /// Emits `subflow_started` + the ceremony start and returns the attempt handle.
-    /// `autoTriggered` appends the web `-auto` spec suffix for ceremonies the integration fires
+    /// `autoTriggered` appends the `-auto` spec suffix for ceremonies the integration fires
     /// without a user gesture.
     public func begin(
         specType: SpecType,
@@ -86,7 +85,7 @@ public final class PasskeyLoginOperation: OperationFull, @unchecked Sendable {
                 assertionResponse: WebAuthnSerialization.assertionResponseJSON(assertion), options: options)
         }
 
-        /// The ceremony failed — dismissal, no credential, provider error. Ships the raw platform
+        /// The ceremony failed (dismissal, no credential, provider error). Ships the raw platform
         /// error; the backend owns the semantic mapping.
         public func ceremonyFailed(_ error: any Error, options: StepOptions? = nil) {
             operation.tracker.autofillEngine.ceremonySettled()

@@ -11,8 +11,8 @@ enum ObserveEnv {
         let projectId: String
     }
 
-    /// Same preset table as the web e2e test app and the Android example (localhost adjusted
-    /// for the iOS simulator).
+    /// Local backend (reachable from the iOS simulator), Cloud Staging and Cloud Prod, each with
+    /// its Observe project.
     static let presets = [
         Endpoint(label: "Local (simulator)", apiBaseUrl: "http://127.0.0.1:15960", projectId: "pro-30"),
         Endpoint(

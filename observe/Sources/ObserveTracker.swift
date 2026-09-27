@@ -3,9 +3,9 @@ import Foundation
 /// The Corbado Observe tracker. Obtain via `CorbadoObserve.initialize`; one instance per process.
 ///
 /// Every public method is main-safe and non-blocking (fire-and-forget into the SDK's ordered
-/// mailbox, consumed by a single task — call order is recording order) and guaranteed never to
-/// throw into the host app — failures are logged and reported to the diagnostic telemetry
-/// stream instead.
+/// mailbox, consumed by a single task, so call order is recording order) and guaranteed never to
+/// throw into the host app. Failures are logged and reported to the diagnostic telemetry stream
+/// instead.
 public final class ObserveTracker: Sendable {
     typealias Job = @Sendable (isolated TrackerCore) async -> Void
 
@@ -62,7 +62,7 @@ public final class ObserveTracker: Sendable {
         }
 
         // Registered synchronously (NotificationCenter registration is thread-safe and cheap)
-        // so destroy() can always unregister — a deferred registration would race it.
+        // so destroy() can always unregister; a deferred registration would race it.
         let watcher = AppLifecycleWatcher(
             onForeground: { [weak self] in self?.post { core in core.checkRotation() } },
             onBackground: { [weak self] in self?.handleBackground() },
@@ -91,8 +91,8 @@ public final class ObserveTracker: Sendable {
 
     // MARK: - Flow-level events
 
-    /// Application tag, attached to flow-starting events (web parity: `applicationId` rides as a
-    /// lowercased tag so several apps reporting into one project stay distinguishable).
+    /// Application tag, attached to flow-starting events. `applicationId` rides as a lowercased
+    /// tag so several apps reporting into one project stay distinguishable.
     private func applicationTag() -> [String: String] {
         options.applicationId.map { ["applicationId": $0.lowercased()] } ?? [:]
     }
@@ -236,7 +236,7 @@ public final class ObserveTracker: Sendable {
         options: StepOptions?,
         ignoreAsInteraction: Bool?
     ) {
-        // A step starting implies any typing stretch ended — flush the field input batches.
+        // A step starting implies any typing stretch ended, so flush the field input batches.
         autofillEngine.flushBatches()
         var payload: [String: JSONValue] = [
             "subflowType": .string(subflowType.rawValue),
@@ -355,7 +355,7 @@ public final class ObserveTracker: Sendable {
     }
 
     /// Set the current screen name, attached to subsequent events as `meta.trackingSourcePath`
-    /// (the native counterpart of the web SDK's page path). Pass nil to stop attaching.
+    /// (the screen the user is on). Pass nil to stop attaching.
     public func setScreen(_ screenName: String?) {
         currentScreenBox.value = screenName
     }
@@ -367,18 +367,18 @@ public final class ObserveTracker: Sendable {
     }
 
     /// Pause/resume event collection. While disabled, every tracking call (flow, decision,
-    /// subflow/operation, custom, telemetry) is silently dropped at the source — nothing new is
+    /// subflow/operation, custom, telemetry) is silently dropped at the source. Nothing new is
     /// recorded anywhere, not even into the durable outbox. Events collected earlier still ship
     /// normally; use `setTransportEnabled` to control sending independently.
     ///
-    /// The switch is runtime-only and not persisted — the host re-applies its consent/kill state
+    /// The switch is runtime-only and not persisted; the host re-applies its consent/kill state
     /// after init on each launch.
     public func setCollectionEnabled(_ enabled: Bool) {
         collectionEnabledBox.value = enabled
     }
 
     /// Pause/resume transmission. While disabled, events keep collecting into the durable outbox
-    /// (bounded) but nothing is sent — for networkless modes or host-controlled quiet phases.
+    /// (bounded) but nothing is sent. Meant for networkless modes or host-controlled quiet phases.
     public func setTransportEnabled(_ enabled: Bool) {
         if destroyedBox.value { return }
         post { core in core.setTransportEnabled(enabled) }
@@ -426,7 +426,7 @@ public final class ObserveTracker: Sendable {
     }
 
     /// Untyped operation for subflow types without a dedicated operation class yet. Step names
-    /// are the caller's responsibility — they must match the vocabulary the backend classifier
+    /// are the caller's responsibility and must match the vocabulary the backend classifier
     /// knows.
     public func operation(_ subflowType: SubflowType) -> GenericOperation {
         GenericOperation(tracker: self, subflowType: subflowType)
@@ -441,14 +441,14 @@ public final class ObserveTracker: Sendable {
             return
         }
         lifecycleWatcher.value?.unregister()
-        // Work posted before destroy still runs first (FIFO) — that's the "flushes pending
+        // Work posted before destroy still runs first (FIFO). That is the "flushes pending
         // events" contract; the destroy job is the mailbox's last element.
         jobs.yield { core in await core.destroyCore() }
         jobs.finish()
     }
 
-    /// Completes when the mailbox has fully drained after `destroy()` (test hook — production
-    /// code never needs to wait on the pump).
+    /// Completes when the mailbox has fully drained after `destroy()`. Test hook; production
+    /// code never needs to wait on the pump.
     func awaitTermination() async {
         await pump.value
     }
@@ -476,7 +476,7 @@ public final class ObserveTracker: Sendable {
             return
         }
 
-        // Flow finished or reset: the auth surface is done — flush field evidence.
+        // Flow finished or reset: the auth surface is done, so flush field evidence.
         if finishedFlowName != nil || endsFlow { autofillEngine.flushBatches() }
 
         // Capture at call site so ordering reflects call order, not scheduling order.

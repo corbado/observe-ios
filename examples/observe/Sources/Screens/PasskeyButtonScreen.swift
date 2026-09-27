@@ -1,7 +1,7 @@
 import CorbadoObserve
 import SwiftUI
 
-/// S3/S4/S7 — button-triggered passkey login, UI always intended. Known identifier (native2's
+/// S3/S4/S7: button-triggered passkey login, UI always intended. Known identifier (native2's
 /// password-screen button): the request carries `allowedCredentials` for that account, and with
 /// no matching local credential this is where the hybrid/QR sheet appears. Usernameless: no
 /// allow list, discoverable credentials, account chooser.

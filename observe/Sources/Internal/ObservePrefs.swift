@@ -1,9 +1,8 @@
 import Foundation
 
 /// UserDefaults wrapper for the SDK's persistent state (own suite so host-app defaults stay
-/// untouched). Storage keys keep the web SDK's `cbo_` prefix convention. Deliberately not the
-/// Keychain: like Android SharedPreferences, state dies with the app install — a reinstall is a
-/// fresh client environment on every platform.
+/// untouched). Storage keys use the `cbo_` prefix. Deliberately not the Keychain: state dies
+/// with the app install, so a reinstall is a fresh client environment.
 ///
 /// The suite is resolved lazily on first access (SDK actor): `UserDefaults(suiteName:)` is a
 /// synchronous cfprefsd round-trip, and construction happens on the caller's thread during init,

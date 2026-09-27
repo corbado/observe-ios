@@ -16,7 +16,7 @@ Known, accepted gaps of the iOS Observe SDK versus its Android/web siblings.
   pair: a real backgrounding, notification banners, Control Center, and on iPad Split View /
   Stage Manager focus switches — same shape as a Face ID blip; the backend separates them.
 - Window lows are emitted by the SDK but the backend runs no ceremony detector for app client
-  environments yet (see TASKS.md); today they are stored, not matched.
+  environments yet; today they are stored, not matched.
 - Modal ceremonies ship `ASAuthorizationError.canceled` (1001) raw whether it was a user
   dismissal or the instant no-credential answer under `preferImmediatelyAvailableCredentials`
   (which also shows the sheet when a credential exists). The backend uses a 1200ms
@@ -27,7 +27,7 @@ Known, accepted gaps of the iOS Observe SDK versus its Android/web siblings.
   suspension ships via outbox recovery on next launch.
 - Ceremony `error.type` is NSError `domain:code` (Android: fully-qualified exception class
   name) — platform-inherent; the backend stores `name`/`code`/`message` only, so the flavour
-  identity today is the Swift type name plus the localized message (see TASKS.md).
+  identity today is the Swift type name plus the localized message.
 - `destroy()` drains with configured retries and can keep the worker alive through backoff.
   A subsequent `initialize()` queues work until that shutdown completes before opening shared
   storage; those replacement-instance calls are not durable while waiting.

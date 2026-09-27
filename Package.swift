@@ -4,7 +4,7 @@ import PackageDescription
 
 // Monorepo package: one Package.swift (SPM requires it at the repo root), one product per
 // published library. Library sources live in top-level per-library directories
-// (observe/Sources, observe/Tests) so the layout matches the corbado/android repo.
+// (observe/Sources, observe/Tests).
 let package = Package(
     name: "corbado-ios",
     platforms: [

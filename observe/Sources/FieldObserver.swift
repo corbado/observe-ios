@@ -1,7 +1,7 @@
 import Foundation
 
 /// Observation handle for one input field, obtained from the owning subflow operation (e.g.
-/// `passwordLoginOperation().passwordField`) — the `fieldType` is fixed by the SDK, so the low
+/// `passwordLoginOperation().passwordField`). The `fieldType` is fixed by the SDK, so the low
 /// vocabulary can never drift. Operations without observable fields expose no handles.
 ///
 /// The integration forwards a single signal per value change (lengths only, never the value):
@@ -16,10 +16,11 @@ import Foundation
 /// Everything else is automatic: typing batches into one `input` low per stretch, bulk changes
 /// emit `big-input-add`/`big-input-rem`, announced writes (`applicationFill`) emit `af-fill` with
 /// their actor, and batches flush on step starts / flow finish / app background. The affordance
-/// signals `shown()`/`hidden()`/`unavailable()` are manual on iOS (see docs/LIMITATIONS.md).
+/// signals `shown()`/`hidden()`/`unavailable()` are manual: iOS has no API to observe the
+/// QuickType/password AutoFill bar.
 ///
-/// Optional focus evidence: forward first-responder changes through `focusChanged(_:)` — from
-/// `@FocusState` in SwiftUI, from the editing delegate callbacks in UIKit. A system fill moves
+/// Optional focus evidence: forward first-responder changes through `focusChanged(_:)`, from
+/// `@FocusState` in SwiftUI or from the editing delegate callbacks in UIKit. A system fill moves
 /// focus across the fields it writes. The app's active-state churn around a fill (Face ID) is
 /// reported by the tracker itself as `window-blur`/`window-focus` while a field is focused, so a
 /// field that goes away focused forwards `false` first.
@@ -40,7 +41,7 @@ public final class FieldObserver: @unchecked Sendable {
     }
 
     /// The field's value changed to `newLength` characters. Set `paste` when the integration
-    /// knows this change is a user paste with certainty — the bulk low then carries
+    /// knows this change is a user paste with certainty; the bulk low then carries
     /// `actor: "user"` instead of landing in the unknown bucket.
     public func changed(newLength: Int, paste: Bool = false) {
         let previous = lock.withLocked {
@@ -51,7 +52,7 @@ public final class FieldObserver: @unchecked Sendable {
         engine.fieldChanged(fieldType: fieldType, previousLength: previous, newLength: newLength, paste: paste)
     }
 
-    /// The field became (`true`) or stopped being (`false`) first responder — emits `focus`/`blur`.
+    /// The field became (`true`) or stopped being (`false`) first responder. Emits `focus`/`blur`.
     /// Forward `false` before the field is torn down while focused.
     public func focusChanged(_ focused: Bool) {
         engine.fieldFocus(handle: ObjectIdentifier(self), fieldType: fieldType, focused: focused)
@@ -59,7 +60,7 @@ public final class FieldObserver: @unchecked Sendable {
 
     /// The integration is about to write a value into the field itself. The next bulk change
     /// within a short window emits `af-fill` with `actor` instead of an unattributed
-    /// `big-input-add` — the default `"app"` covers generic programmatic writes (e.g. applying a
+    /// `big-input-add`. The default `"app"` covers generic programmatic writes (e.g. applying a
     /// system credential result); pass the mechanism when known.
     public func applicationFill(actor: String = "app") {
         engine.applicationFill(fieldType: fieldType, actor: actor)

@@ -4,7 +4,7 @@ import Testing
 @testable import CorbadoObserve
 
 /// Wire-contract tests: the JSON leaving this SDK must match the backend OpenAPI spec
-/// (api_public_v1.yml) — spec casing (`sessionID`), no null noise, `deviceInfo.type == "app"`.
+/// (api_public_v1.yml): spec casing (`sessionID`), no null noise, `deviceInfo.type == "app"`.
 @Suite struct WireSerializationTests {
     @Test func batchUsesSpecCasingAndOmitsAbsentFields() throws {
         let batch = WireEventBatch(

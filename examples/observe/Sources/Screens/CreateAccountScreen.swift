@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Setup utility: seed accounts in the fake backend. Fields are probed and tagged `.username` /
-/// `.newPassword`, and creating the account leaves the screen — the fields leave the view
+/// `.newPassword`, and creating the account leaves the screen. The fields leave the view
 /// hierarchy, which is what lets the system save prompt (S28) and the strong-password
 /// suggestion (S29) be observed here. No flow is tracked (setup, not a situation).
 struct CreateAccountScreen: View {

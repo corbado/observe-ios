@@ -20,7 +20,7 @@ Example / test applications live under [`examples/`](examples/) and are never pu
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/corbado/ios.git", from: "0.1.0")
+    .package(url: "https://github.com/corbado/observe-ios.git", from: "0.1.0")
 ]
 ```
 

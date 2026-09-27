@@ -4,30 +4,30 @@ import Foundation
 ///
 /// The SDK must NEVER transmit data that would let Corbado complete a login or a passkey creation
 /// on the user's behalf (which could mint a session). The integrating app legitimately holds the
-/// full credential response — it performs the real ceremony with the relying party — but the SDK
+/// full credential response (it performs the real ceremony with the relying party), but the SDK
 /// sanitizes its OWN copy here, at the `ObserveTracker` track() serialization choke point, so the
 /// raw material never enters an event, the durable outbox, or the transport.
 ///
 /// Per ceremony, exactly one element is completion-critical, and it differs by what the holder
 /// could otherwise reconstruct:
-/// - **Login assertion** (`assertionResponse`): the `signature` — the sole proof, unforgeable
+/// - **Login assertion** (`assertionResponse`): the `signature`, the sole proof, unforgeable
 ///   without the hardware-held private key. Removed. Everything analytically useful stays
 ///   (credential id, authenticator-data flags, clientDataJSON).
 /// - **Passkey enrollment** (`attestationResponse` + `attestationOptions`): the single-use
 ///   `challenge`. There is no per-user secret to strip, so denying the challenge is what blocks
-///   completion — and it must be denied everywhere it appears (the response's clientDataJSON AND
+///   completion. It must be denied everywhere it appears (the response's clientDataJSON AND
 ///   the options), or the two copies reconstruct each other.
 ///
 /// Keyed by the wire field names the backend classifier uses; recurses so nested `stepData` (and
 /// any future nesting) is covered. Anything that fails to parse is redacted wholesale rather than
-/// passed through — a sanitizer must never leak on its error path.
+/// passed through: a sanitizer must never leak on its error path.
 enum WebAuthnSanitizer {
     private static let redacted = "[redacted]"
 
-    /// Valid base64url, non-empty — passes the backend's `len(challenge) > 0` presence gate.
+    /// Valid base64url, non-empty. Passes the backend's `len(challenge) > 0` presence gate.
     private static let redactedChallenge = "redacted"
 
-    /// Neutral clientDataJSON (no challenge, no origin) — still parses as WebAuthn client data.
+    /// Neutral clientDataJSON (no challenge, no origin) that still parses as WebAuthn client data.
     private static let neutralClientDataJSON: String = {
         let json = #"{"type":"webauthn.create","challenge":"","origin":""}"#
         return base64Url(Data(json.utf8))

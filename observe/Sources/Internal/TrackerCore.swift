@@ -1,7 +1,6 @@
 import Foundation
 
-/// The SDK's single serialization domain — the port of the Android SDK's dedicated
-/// `corbado-observe` thread. All mutable tracking state (session, buffers, outbox, queue,
+/// The SDK's single serialization domain. All mutable tracking state (session, buffers, outbox, queue,
 /// config snapshot) lives here; the public `ObserveTracker` posts ordered jobs into it via its
 /// mailbox and never blocks the caller.
 actor TrackerCore {
@@ -11,7 +10,7 @@ actor TrackerCore {
     private let prefs = ObservePrefs()
 
     /// Boot snapshot mirror: written once in `start()`, read synchronously by the lifecycle
-    /// watcher and the buffers' gate closures (the port of Android's `@Volatile` config).
+    /// watcher and the buffers' gate closures without hopping onto the actor.
     private let configBox: Locked<SdkConfig>
     private let sessionIdBox: Locked<String?>
 

@@ -1,9 +1,9 @@
-/// Buffer for low events — high-volume ambient UI evidence (autofill affordances, bulk fills)
+/// Buffer for low events: high-volume ambient UI evidence (autofill affordances, bulk fills)
 /// that never participates in flow classification directly; the backend translates it into
 /// insights. Entries ride along in the `lows` array of the next event batch.
 ///
-/// In-memory only (no outbox write-through): lows are best-effort evidence, losing a process
-/// worth of them is acceptable — unlike auth events. Bounded so a hot signal source cannot grow
+/// In-memory only (no outbox write-through): lows are best-effort evidence, and unlike auth
+/// events, losing a process worth of them is acceptable. Bounded so a hot signal source cannot grow
 /// the batch without limit.
 ///
 /// All access is on the SDK's internal actor.

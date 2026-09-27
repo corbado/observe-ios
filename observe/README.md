@@ -10,11 +10,11 @@ The iOS sibling of [`@corbado/observe`](https://github.com/corbado/js) (web) and
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/corbado/ios.git", from: "0.1.0")
+    .package(url: "https://github.com/corbado/observe-ios.git", from: "0.1.0")
 ],
 targets: [
     .target(name: "YourApp", dependencies: [
-        .product(name: "CorbadoObserve", package: "ios")
+        .product(name: "CorbadoObserve", package: "observe-ios")
     ])
 ]
 ```
@@ -47,5 +47,5 @@ The tracker also reports the app's active-state churn around system UI (`window-
 `window-focus`) while a ceremony runs or a field is focused — the Face ID gate of a password
 fill and every system sheet show up there. See `docs/as-af-signal-spec.md` for what these lows mean.
 
-See [`examples/observe`](../examples/observe/) for a runnable app,
-[TASKS.md](../TASKS.md) / [limitations](../docs/LIMITATIONS.md) for status.
+See [`examples/observe`](../examples/observe/) for a runnable app and
+[limitations](../docs/LIMITATIONS.md) for known platform gaps.

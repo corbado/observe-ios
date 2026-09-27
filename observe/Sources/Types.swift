@@ -4,7 +4,7 @@ import Foundation
 public struct ObserveOptions: Sendable {
     /// Corbado project id (`pro-...`). Required.
     public var projectId: String
-    /// Base URL of the ingest API — `https://api.cloud.corbado.io`, or your own proxy. Must
+    /// Base URL of the ingest API: `https://api.cloud.corbado.io`, or your own proxy. Must
     /// include the scheme and carry no trailing slash. Required.
     public var apiBaseUrl: String
     /// Terminal path of the events endpoint. Override only when a proxy mounts ingestion under a
@@ -65,8 +65,7 @@ public struct StepOptions: Sendable {
     }
 }
 
-/// Serializable error shape used in error event payloads (the sibling of the web SDK's
-/// `normalizeError`).
+/// Serializable error shape used in error event payloads.
 public struct NormalizedError: Sendable {
     public var name: String?
     public var code: String?

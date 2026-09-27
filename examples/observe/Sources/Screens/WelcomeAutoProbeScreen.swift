@@ -1,13 +1,14 @@
 import CorbadoObserve
 import SwiftUI
 
-/// S1/S2 — the native2 welcome pattern: identifier field, passkey-only assertion fired
+/// S1/S2: the native2 welcome pattern. Identifier field, passkey-only assertion fired
 /// automatically on flow start with `preferImmediatelyAvailableCredentials` (nothing shows without
 /// a local passkey; the delegate answers 1001 instantly). Tracked as a `system-credential` sheet
-/// requesting passkeys only. Extras: the re-fire button (S8, usernameless request right after a dismissal) and the
-/// hidden `.password` harvest field (S14): a QuickType pick on the identifier field also fills the
-/// hidden password, and the app submits both — the password screen is skipped. Dismissing the
-/// sheet lands the user on the identifier field where AutoFill takes over (S16 → S13).
+/// requesting passkeys only. Extras: the re-fire button (S8, usernameless request right after a
+/// dismissal) and the hidden `.password` harvest field (S14). A QuickType pick on the identifier
+/// field also fills the hidden password, and the app submits both, skipping the password screen.
+/// Dismissing the sheet lands the user on the identifier field where AutoFill takes over
+/// (S16 → S13).
 struct WelcomeAutoProbeScreen: View {
     let context: ScreenContext
 
@@ -114,7 +115,7 @@ struct WelcomeAutoProbeScreen: View {
         }
     }
 
-    /// S14: the hidden password field received a value — only a system fill can do that. The
+    /// S14: the hidden password field received a value; only a system fill can do that. The
     /// credential arrived before its screen existed; native2 submits right away.
     private func harvested(_ password: String) {
         guard !password.isEmpty, !identifier.isEmpty, !busy else { return }

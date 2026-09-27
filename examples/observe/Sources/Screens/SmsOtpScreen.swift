@@ -1,7 +1,7 @@
 import CorbadoObserve
 import SwiftUI
 
-/// S18 — SMS one-time code on a `.oneTimeCode` field. The code arrives as a QuickType chip (or is
+/// S18: SMS one-time code on a `.oneTimeCode` field. The code arrives as a QuickType chip (or is
 /// pushed straight into a focused field) with no Face ID gate; the probe records how the system
 /// inserts it. Any six-digit code verifies against the fake backend.
 struct SmsOtpScreen: View {

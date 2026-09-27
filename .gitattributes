@@ -4,7 +4,6 @@ docs/         export-ignore
 .github/      export-ignore
 AGENTS.md     export-ignore
 CLAUDE.md     export-ignore
-TASKS.md      export-ignore
 .swiftlint.yml export-ignore
 .swift-format export-ignore
 .editorconfig export-ignore

@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 /// A `UITextField` for SwiftUI whose delegate, change notification, responder churn and paste
-/// are probed — the app-side fill signature from the research doc (§2.5). SwiftUI's own
+/// are probed: the app-side fill signature from the research doc (§2.5). SwiftUI's own
 /// `TextField` hides all of it. Values never reach the probe, only lengths and deltas.
 struct ProbedTextField: UIViewRepresentable {
     let fieldName: String
@@ -138,7 +138,7 @@ struct ProbedTextField: UIViewRepresentable {
     }
 }
 
-/// `UITextField` that knows when a change comes from the paste menu — the one bulk-change source
+/// `UITextField` that knows when a change comes from the paste menu, the one bulk-change source
 /// app code can tell apart with certainty. The delegate call arrives after `paste(_:)` returns,
 /// so the flag stays up for a short window instead of the call's duration.
 final class PasteAwareTextField: UITextField {

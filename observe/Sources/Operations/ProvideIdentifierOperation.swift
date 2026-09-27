@@ -1,10 +1,9 @@
 /// Provide-identifier subflow operation: the user entering their email/phone before an auth
-/// method is chosen. Wire vocabulary mirrors the web SDK's `OperationFullProvideIdentifierWithCUI`
-/// — `pi-*` steps for the identifier form itself, `cui-*` steps for a credential suggestion
-/// surfaced on the identifier field (web conditional UI; on iOS a QuickType-bar passkey
-/// suggestion resolved through `ASAuthorizationController`).
+/// method is chosen. Emits `pi-*` steps for the identifier form itself and `cui-*` steps for a
+/// credential suggestion surfaced on the identifier field (conditional UI: a QuickType-bar
+/// passkey suggestion resolved through `ASAuthorizationController`).
 public final class ProvideIdentifierOperation: OperationFull, @unchecked Sendable {
-    /// Identifier kinds (same wire values as web).
+    /// Identifier kinds (wire values).
     public enum SpecType: String, Sendable {
         case email
         case phone
@@ -20,8 +19,8 @@ public final class ProvideIdentifierOperation: OperationFull, @unchecked Sendabl
     public let postResponse: StepHandle
 
     /// Hosted conditional-UI steps: a credential offered on the identifier field classifies into
-    /// this subflow, same as web CUI. The options fetch is preparatory, never interaction — its
-    /// start rides `ignoreAsInteraction`.
+    /// this subflow. The options fetch is preparatory, never interaction, so its start rides
+    /// `ignoreAsInteraction`.
     public let cui: ConditionalUISteps
 
     init(tracker: ObserveTracker) {

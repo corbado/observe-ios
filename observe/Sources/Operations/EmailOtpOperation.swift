@@ -1,4 +1,5 @@
-/// Email-OTP subflow operation. Wire vocabulary mirrors the web SDK's `EmailOtpOperationFull`.
+/// Email-OTP subflow operation. Its step names and spec types are the wire vocabulary the backend
+/// classifier keys off.
 ///
 /// ```swift
 /// let op = tracker.emailOtpOperation()
@@ -10,7 +11,7 @@
 /// op.postResponse.finished(options: StepOptions(userReference: user))
 /// ```
 public final class EmailOtpOperation: OperationFull, @unchecked Sendable {
-    /// Whether the OTP verifies a login or enrolls/verifies a new address (same values as web).
+    /// Whether the OTP verifies a login or enrolls/verifies a new address.
     public enum SpecType: String, Sendable {
         case login = "email-otp-login"
         case enrollment = "email-otp-enrollment"

@@ -8,7 +8,7 @@ import Foundation
 /// - **Never breaks the host app**: `initialize` is cheap and main-safe (all real work happens
 ///   asynchronously on the SDK's own actor); no public method ever throws.
 /// - **App only**: in an app extension (where `UIApplication` does not even exist) the SDK
-///   refuses to initialize and returns nil — the iOS analog of the Android main-process guard.
+///   refuses to initialize and returns nil, so only the main app process ever tracks.
 public enum CorbadoObserve {
     private struct State {
         var tracker: ObserveTracker?
@@ -18,12 +18,12 @@ public enum CorbadoObserve {
     private static let stateBox = Locked(State())
 
     /// Initialize the SDK and return the tracker, or nil when initialization is refused (app
-    /// extension, invalid options). Call once, e.g. from your `App`/app delegate startup —
-    /// guarded however you like; skipping the call disables the SDK entirely.
+    /// extension, invalid options). Call once, e.g. from your `App`/app delegate startup, guarded
+    /// however you like. Skipping the call disables the SDK entirely.
     @discardableResult
     public static func initialize(options: ObserveOptions) -> ObserveTracker? {
         let logger = ObserveLogger(debug: options.debug)
-        // Idempotent once initialized — even a later call with (invalid or different) options
+        // Idempotent once initialized: even a later call with (invalid or different) options
         // returns the existing tracker rather than re-validating.
         if let existing = stateBox.value.tracker {
             logger.warn("already initialized; returning the existing tracker")

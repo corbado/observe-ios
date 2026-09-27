@@ -2,14 +2,15 @@ import Foundation
 
 /// Shared per-tracker engine behind the operations' `FieldObserver` handles. Owns everything that
 /// is screen- rather than field-scoped: typing batches and announced-fill windows per fieldType,
-/// the shown-duration bookkeeping for the manual affordance signals (the only affordance source
-/// on iOS, see docs/LIMITATIONS.md), and the arming state of the window lows.
+/// the shown-duration bookkeeping for the manual affordance signals (iOS cannot observe the
+/// AutoFill bar, so these are the only affordance source), and the arming state of the window
+/// lows.
 ///
 /// Batches auto-flush on any subflow step start (submission = typing stretch over), flow finish
 /// or reset, and app background.
 ///
 /// Ambient lows: field `focus`/`blur` (forwarded by the integration) and `window-blur`/
-/// `window-focus` from the app's active-state churn — the Face ID gate of a system fill and every
+/// `window-focus` from the app's active-state churn. The Face ID gate of a system fill and every
 /// system sheet show up as that pair. Window lows are armed while a ceremony is running (the
 /// operations' typed ceremony helpers) or a field is focused. A blur that was emitted always gets
 /// its focus.
@@ -53,7 +54,7 @@ final class AutofillEngine: @unchecked Sendable {
         let now = now()
 
         if delta >= Self.minBulkDelta {
-            // Consumed on match: one announcement covers one bulk change — a later paste on the
+            // Consumed on match: one announcement covers one bulk change, so a later paste on the
             // same field must not inherit the announced actor.
             let announcedActor: String? = lock.withLocked {
                 guard let fill = announcedFills.removeValue(forKey: fieldType),

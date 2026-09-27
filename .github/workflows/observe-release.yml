@@ -57,7 +57,7 @@ jobs:
           {
             echo "version=$RELEASE_VERSION"
             echo "commit=$(git rev-parse HEAD)"
-            echo "source=https://github.com/corbado/ios"
+            echo "source=https://github.com/corbado/observe-ios"
             xcodebuild -version
             swift --version
           } > "$RUNNER_TEMP/delivery/RELEASE.txt"

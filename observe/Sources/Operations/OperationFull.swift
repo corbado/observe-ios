@@ -1,7 +1,7 @@
 import Foundation
 
 /// Typed emitter for one step of a subflow: the `start`/`finished`/`error` triple guarantees the
-/// exact wire vocabulary the backend classifier expects. Mirrors the web SDK's `StepHelper`.
+/// exact wire vocabulary the backend classifier expects.
 public final class StepHandle: Sendable {
     private let tracker: ObserveTracker
     private let subflowType: SubflowType
@@ -55,9 +55,8 @@ public final class StepHandle: Sendable {
 }
 
 /// Raw platform-error payload for ceremony step errors ({name, code, message}). The SDK never
-/// maps error semantics — the backend owns that (raw errors feed the error flavours). `code` is
-/// `NSError` `domain:code`, the iOS analog of Android's fully-qualified exception class name, in
-/// the wire position the backend reads as the error code.
+/// maps error semantics; the backend owns that (raw errors feed the error flavours). `code` is
+/// `NSError` `domain:code`, in the wire position the backend reads as the error code.
 func rawPlatformErrorData(_ error: any Error) -> [String: JSONValue] {
     let nsError = error as NSError
     return [
@@ -69,11 +68,10 @@ func rawPlatformErrorData(_ error: any Error) -> [String: JSONValue] {
     ]
 }
 
-/// Base class for subflow operations — the typed layer that guarantees the event vocabulary
-/// (subflow type, step names, payload shapes) the backend classifier keys off. The iOS sibling
-/// of the web SDK's `OperationFull`.
+/// Base class for subflow operations: the typed layer that guarantees the event vocabulary
+/// (subflow type, step names, payload shapes) the backend classifier keys off.
 ///
-/// All stored properties here and in the subclasses are immutable (`let`) — the `@unchecked`
+/// All stored properties here and in the subclasses are immutable (`let`). The `@unchecked`
 /// is only for the non-final-class conformance rule, not for hidden mutable state.
 public class OperationFull: @unchecked Sendable {
     let tracker: ObserveTracker
@@ -84,7 +82,7 @@ public class OperationFull: @unchecked Sendable {
         self.subflowType = subflowType
     }
 
-    /// Emits `subflow_started`. Supported `data` keys mirror the web SDK's `SubflowTrigger`:
+    /// Emits `subflow_started`. Supported `data` keys:
     /// `actor` (`"user"` or `"system"`), `explicitSpecType`, and `ignoreAsInteraction` (set it on
     /// programmatic starts whose abandonment is expected rather than an error signal).
     public func subflowStart(data: [String: JSONValue] = [:], options: StepOptions? = nil) {

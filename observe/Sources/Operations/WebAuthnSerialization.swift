@@ -2,9 +2,9 @@ import AuthenticationServices
 import Foundation
 
 /// Serialization layer from the typed `AuthenticationServices` ceremony results the host app
-/// holds to the WebAuthn JSON shape the wire (and the sanitizer) speak — the same shape Android
-/// Credential Manager and the web `PublicKeyCredential` produce natively. Host apps with a
-/// custom WebAuthn stack can bypass this and pass JSON strings directly.
+/// holds to the WebAuthn JSON shape the wire (and the sanitizer) speak, i.e. the standard
+/// `PublicKeyCredential` JSON encoding. Host apps with a custom WebAuthn stack can bypass this
+/// and pass JSON strings directly.
 enum WebAuthnSerialization {
     static func assertionResponseJSON(_ assertion: any ASAuthorizationPublicKeyCredentialAssertion) -> String {
         let credentialId = WebAuthnSanitizer.base64Url(assertion.credentialID)

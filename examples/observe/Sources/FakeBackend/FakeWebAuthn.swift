@@ -3,7 +3,7 @@ import Foundation
 
 /// WebAuthn side of the fake backend: mints registration/assertion requests for
 /// `AuthenticationServices` and keeps a local passkey registry (identifier → credential ids). No
-/// verification — we only need the ceremonies and their telemetry. The rpId comes from the devbar;
+/// verification; we only need the ceremonies and their telemetry. The rpId comes from the devbar;
 /// its `apple-app-site-association` must list this app.
 @MainActor
 final class FakeWebAuthn {
@@ -58,7 +58,7 @@ final class FakeWebAuthn {
     }
 
     /// Assertion request. With `identifier` the request carries `allowedCredentials` for that
-    /// account (identifier-known variant) — and, like a real backend, only when passkey ids are on
+    /// account (identifier-known variant), and, like a real backend, only when passkey ids are on
     /// record for it (nil otherwise). Without an identifier it is usernameless (discoverable).
     func assertionRequest(
         rpId: String, identifier: String? = nil
@@ -82,7 +82,7 @@ final class FakeWebAuthn {
     }
 
     /// Resolves an assertion to the identifier its credential is registered for (nil = unknown
-    /// credential, i.e. a passkey the backend never saw — the "assertion rejected" case).
+    /// credential, i.e. a passkey the backend never saw: the "assertion rejected" case).
     func passkeyLogin(_ assertion: ASAuthorizationPlatformPublicKeyCredentialAssertion) -> String? {
         let id = assertion.credentialID.base64URL
         return store.first { $0.value.contains(id) }?.key

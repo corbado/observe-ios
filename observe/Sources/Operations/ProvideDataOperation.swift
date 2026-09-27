@@ -1,8 +1,7 @@
 /// Provide-data subflow operation: a user-triggered data submission that is not an identifier or
-/// credential (signup form fields, profile data, consent). Wire vocabulary mirrors the web SDK's
-/// `ProvideDataOperationFull`.
+/// credential (signup form fields, profile data, consent).
 public final class ProvideDataOperation: OperationFull, @unchecked Sendable {
-    /// Which flow the data collection belongs to (same wire values as web).
+    /// Which flow the data collection belongs to (wire values).
     public enum SpecType: String, Sendable {
         case signup
         case login

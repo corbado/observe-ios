@@ -2,14 +2,14 @@ import Foundation
 import Security
 
 /// UUIDv7 generator (RFC 9562): 48-bit unix-ms timestamp, version/variant bits, random tail.
-/// Used for event/telemetry idempotency ids and the session/process ids — time-ordered ids keep
+/// Used for event/telemetry idempotency ids and the session/process ids. Time-ordered ids keep
 /// server-side dedup indexes friendly.
 enum Uuid {
     static func v7(now: Int64 = Int64(Date().timeIntervalSince1970 * 1000)) -> String {
         var bytes = [UInt8](repeating: 0, count: 16)
         let status = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
         if status != errSecSuccess {
-            // Fall back to the non-cryptographic generator — these are idempotency ids, not keys.
+            // Fall back to the non-cryptographic generator: these are idempotency ids, not keys.
             for index in bytes.indices { bytes[index] = UInt8.random(in: 0...255) }
         }
 

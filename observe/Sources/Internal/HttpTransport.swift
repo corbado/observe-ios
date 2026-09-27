@@ -14,8 +14,8 @@ struct TransportResult: Sendable {
     var configBody: String?
 }
 
-/// Event delivery over a private ephemeral `URLSession` — no cookies, no cache, no third-party
-/// networking: the SDK is embedded in other companies' apps, and every dependency is a potential
+/// Event delivery over a private ephemeral `URLSession`: no cookies, no cache, no third-party
+/// networking. The SDK is embedded in other companies' apps, and every dependency is a potential
 /// conflict.
 ///
 /// Never throws (failures return a result with `statusCode == nil`, treated as retryable network

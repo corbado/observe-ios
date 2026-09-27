@@ -19,8 +19,8 @@ import Foundation
 /// ```
 ///
 /// Abort contract: an armed request is process-scoped and settles as
-/// `ASAuthorizationError.canceled` (1001) after the app's own `cancel()` — on navigation or before
-/// a modal handover — exactly like a dismissal would. Leave the ceremony step open in that case
+/// `ASAuthorizationError.canceled` (1001) after the app's own `cancel()` (on navigation or before
+/// a modal handover), exactly like a dismissal would. Leave the ceremony step open in that case
 /// (neutral for classification). `ceremonyFailed` is for failures outside the app's control,
 /// e.g. 1004 "already in progress" from arming while a request is still alive.
 public final class ConditionalUISteps: Sendable {
