@@ -1,6 +1,6 @@
 import Foundation
 
-/// Server-driven SDK reliability config — the mechanism for changing SDK behavior in the field
+/// Server-driven SDK reliability config: the mechanism for changing SDK behavior in the field
 /// without app releases (risky behavior ships dark, defaults are conservative).
 ///
 /// The SDK opts in by sending `X-Corbado-Observe-Config: <version|1>` on event requests; the
@@ -9,11 +9,11 @@ import Foundation
 /// process lifetime; a config received mid-run is only cached for the NEXT start.
 ///
 /// Parsing is defensive: unknown fields are ignored and missing fields keep their defaults,
-/// clamped to sane bounds — a malformed config can never disable delivery or produce a hot loop.
+/// clamped to sane bounds. A malformed config can never disable delivery or produce a hot loop.
 struct SdkConfig: Sendable {
     /// Content-derived version assigned by the server; echoed in the request header.
     var version: String = ""
-    /// How often the queue flushes, ms. Native default is battery-frugal (2s vs web's 500ms).
+    /// How often the queue flushes, ms. The default (2s) is battery-frugal.
     var flushIntervalMs: Int64 = 2_000
     /// Inactivity window after which the session id rotates, ms.
     var sessionInactivityMs: Int64 = 30 * 60 * 1_000
@@ -23,12 +23,12 @@ struct SdkConfig: Sendable {
     var flushOnTelemetry: Bool = false
     /// Flow types whose `flow_finished`/`flow_auto_finished` triggers an immediate flush.
     var flushOnFlowTypeFinished: [String] = []
-    /// Per-field timeout for device info collection, ms. Parsed for config parity; iOS collects
-    /// synchronously.
+    /// Per-field timeout for device info collection, ms. Parsed so the shared config shape stays
+    /// complete; iOS collects synchronously and does not use it.
     var deviceInfoCollectorTimeoutMs: Int64 = 1_000
     /// Native flush-trigger switch: flush when the app leaves the foreground. Defaults ON.
     var flushOnBackground: Bool = true
-    /// Master switch for the low-event stream (autofill signals etc.). Defaults ON — the real
+    /// Master switch for the low-event stream (autofill signals etc.). Defaults ON: the real
     /// gate is the integration wiring collectors at all; this is the server-side kill switch for
     /// data volume.
     var lows: Bool = true
@@ -41,7 +41,7 @@ struct SdkConfig: Sendable {
     static let `default` = SdkConfig()
 
     /// Parses a config response body (web- or app-shaped JSON). Returns nil when the body is
-    /// not a JSON object — the caller keeps its current config.
+    /// not a JSON object; the caller then keeps its current config.
     static func parse(_ body: String) -> SdkConfig? {
         guard let data = body.data(using: .utf8),
             let parsed = try? JSONSerialization.jsonObject(with: data),
@@ -79,8 +79,7 @@ struct SdkConfig: Sendable {
 
     private static let maxFlushFlowTypes = 20
 
-    // Primitive coercion mirrors kotlinx-serialization's `jsonPrimitive` reads: numbers accept
-    // string form, strings accept numeric form.
+    // Lenient primitive coercion: numbers accept string form, strings accept numeric form.
     private static func long(_ object: [String: Any], _ key: String) -> Int64? {
         switch object[key] {
         case let value as Int64: return value

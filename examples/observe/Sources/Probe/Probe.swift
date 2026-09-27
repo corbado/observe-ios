@@ -2,7 +2,7 @@ import Foundation
 import os
 
 /// Experiment observation channel: structured JSONL, written to unified logging AND appended
-/// to `Documents/probe.jsonl` — nothing on screen. `tools/capture.sh` pulls both (the SDK's own
+/// to `Documents/probe.jsonl`; nothing on screen. `tools/capture.sh` pulls both (the SDK's own
 /// debug event log rides the same unified-logging stream). Every line is one JSON object:
 /// `{"ts":<unix ms>,"screen":"...","event":"...", ...fields}`.
 ///

@@ -35,7 +35,7 @@ Consuming `main` (integrator testing):
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/corbado/ios.git", branch: "main")
+    .package(url: "https://github.com/corbado/observe-ios.git", branch: "main")
 ]
 ```
 

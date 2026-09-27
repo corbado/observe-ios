@@ -1,7 +1,7 @@
 import UIKit
 
-/// Foreground/background detection via app-level `UIApplication` notifications — works for every
-/// app architecture (scenes or classic app delegate), no delegate swizzling, no auto-init magic.
+/// Foreground/background detection via app-level `UIApplication` notifications. Works for every
+/// app architecture (scenes or classic app delegate), with no delegate swizzling or auto-init.
 /// Registered during explicit `init()` and unregistered on `destroy()`. Also relays active-state
 /// churn (resign/become active) to the autofill engine for the `window-blur`/`window-focus` lows.
 ///

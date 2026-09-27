@@ -4,7 +4,7 @@ import Foundation
 /// auth-flow events). Entries ride along in the `telemetry` array of the next event batch.
 ///
 /// Bounded and deduplicated per process: a persistent fault (blocked storage, downed endpoint)
-/// cannot flood the stream. Device-info collection failures also land here — the app SDKs do not
+/// cannot flood the stream. Device-info collection failures also land here; this SDK does not
 /// use the wire `collectionErrors` field.
 ///
 /// All access is on the SDK's internal actor.

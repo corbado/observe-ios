@@ -108,7 +108,7 @@ a 1001 was a dismissal or the app's own cancel.
    or a field is focused (web's two arming sources): the resign/become-active pair is the
    overlay shape web's classifier matches. It corroborates the 1.7 s shape and must never gate
    (S17b has no blip). Ingested today, matched only once the backend runs a ceremony detector
-   for app client environments (TASKS.md). An armed conditional request is idle and arms
+   for app client environments. An armed conditional request is idle and arms
    nothing; its focused field does.
 3. Field `focus` / `blur` lows via `focusChanged(_:)`: UIKit forwards its editing callbacks
    (full churn); SwiftUI forwards `@FocusState` changes (sees the cross-field hop of a chip
@@ -118,7 +118,7 @@ a 1001 was a dismissal or the app's own cancel.
    count as available. The SDK ships the raw error and the step duration.
 5. Conditional UI: process scope, the 1004 collision and the abort contract (the 1001 after
    the app's own `cancel()` stays unreported) live in `ConditionalUISteps` and the example.
-6. `deviceOwnerAuth`/biometry probes: keep the `LAError` code (TASKS.md), but expect "ok"
+6. `deviceOwnerAuth`/biometry probes: keep the `LAError` code, but expect "ok"
    under most real failures.
 
 ## 7. Not verified

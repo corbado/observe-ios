@@ -1,8 +1,8 @@
 import AuthenticationServices
 import Foundation
 
-/// Passkey-enrollment subflow operation (registration ceremonies). Wire vocabulary mirrors
-/// the web SDK: `ceremony` (with `attestationOptions`/`attestationResponse`) + `post-response`.
+/// Passkey-enrollment subflow operation (registration ceremonies). Emits the `ceremony` step
+/// (with `attestationOptions`/`attestationResponse`) and the `post-response` step.
 ///
 /// ```swift
 /// let attempt = tracker.passkeyEnrollmentOperation().begin(attestationOptions: optionsJson)
@@ -19,8 +19,7 @@ public final class PasskeyEnrollmentOperation: OperationFull, @unchecked Sendabl
     }
 
     /// Emits `subflow_started` + the ceremony start. `specType` describes how the enrollment was
-    /// offered (default `"auto-manual"`: automatically prompted, manually confirmed — the
-    /// native-1 vocabulary).
+    /// offered (default `"auto-manual"`: automatically prompted, manually confirmed).
     public func begin(
         attestationOptions: String? = nil,
         specType: String = "auto-manual",

@@ -2,9 +2,9 @@ import Foundation
 
 /// Wire data model of the Observe ingest API (`POST <apiBaseUrl>/v1/observe/events/<projectId>`).
 ///
-/// The contract is owned by the backend (`corbado` repo, `backend/openapi/api_public_v1.yml`) and
-/// shared with the web SDK (`js/packages/observe/src/types.ts`). Field names and event vocabulary
-/// must match exactly — the backend classifier keys off them. Never invent fields here; contract
+/// The contract is owned by the backend (`corbado` repo, `backend/openapi/api_public_v1.yml`).
+/// Field names and event vocabulary must match exactly because the backend classifier keys off
+/// them. Never invent fields here; contract
 /// changes start in the backend OpenAPI spec.
 enum WireJson {
     static let encoder: JSONEncoder = JSONEncoder()
@@ -16,8 +16,8 @@ enum WireJson {
 }
 
 struct WireEventBatch: Codable {
-    // Spec casing is `sessionID` (the web SDK's `sessionId` only works because Go's JSON
-    // decoder matches case-insensitively) — we follow the spec.
+    // Spec casing is `sessionID`. Go's JSON decoder would also accept `sessionId`
+    // (case-insensitive match), but the SDK follows the spec.
     var sessionID: String
     var events: [WireEvent]
     var sdk: WireSdkInfo
@@ -69,9 +69,9 @@ struct WireEventMeta: Codable {
     /// Where the event originated. Native: the host-app-provided screen name (see `setScreen`);
     /// omitted while no screen is set.
     var trackingSourcePath: String?
-    /// Short-lived stream id, attached to EVERY event. Web: per-tab id; native: a per-process id
-    /// minted at process start — the backend splits interleaved streams of one long-horizon
-    /// session by it, and it disambiguates the per-process seq counter across incarnations.
+    /// Short-lived stream id, attached to EVERY event: a per-process id minted at process start.
+    /// The backend splits interleaved streams of one long-horizon session by it, and it
+    /// disambiguates the per-process seq counter across incarnations.
     var tabId: String?
 }
 
@@ -116,9 +116,9 @@ struct WireClientEnvHandleMeta: Codable {
 struct WireDeviceInfoDataApp: Codable {
     var osName: String
     var osVersion: String
-    /// Device model — the machine identifier, e.g. "iPhone15,3".
+    /// Device model: the machine identifier, e.g. "iPhone15,3".
     var model: String?
-    /// Device manufacturer/brand — always "Apple" here.
+    /// Device manufacturer/brand, always "Apple".
     var brand: String?
     /// Host application name.
     var appName: String?
@@ -129,7 +129,7 @@ struct WireDeviceInfoDataApp: Codable {
     /// Never probed on iOS (a `CBCentralManager` probe would trigger the Bluetooth permission
     /// dialog); stays absent.
     var isBluetoothAvailable: Bool?
-    /// Android only; stays absent on iOS.
+    /// Not applicable on iOS; always absent.
     var androidGooglePlayServicesVersion: String?
     /// BCP-47 locale tag, e.g. "de-DE".
     var locale: String?

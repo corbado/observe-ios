@@ -96,7 +96,7 @@ final class AppModel: ObservableObject {
         Probe.log("navigate", ["to": target.id])
     }
 
-    /// Login completed (flow_finished already emitted): land on the success screen — or, when the
+    /// Login completed (flow_finished already emitted): land on the success screen or, when the
     /// "server" decides so, on the post-login enrollment offer first (a NEW enrollment flow
     /// auto-starts there). Coming FROM the offer always ends on the success screen.
     func onLoginSuccess(_ identifier: String?) {

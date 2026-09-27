@@ -1,16 +1,15 @@
 import AuthenticationServices
 import Foundation
 
-/// System-credential subflow operation: a system credential chooser — iOS
+/// System-credential subflow operation: a system credential chooser, i.e.
 /// `ASAuthorizationController` with several request types (passkey + password, Sign in with
-/// Apple); Android's Credential Manager sheet and web `uiMode: 'immediate'` share the same
-/// shape. The chooser is not an authentication method; its resolution hands over to (or
+/// Apple). The chooser is not an authentication method; its resolution hands over to (or
 /// completes as) a method.
 ///
 /// The requested set may contain only passkeys for an entry-screen sheet. Dedicated passkey
 /// login buttons use the passkey-login subflow instead.
 ///
-/// The SDK never runs the ceremony itself — the integration wraps its own
+/// The SDK never runs the ceremony itself. The integration wraps its own
 /// `ASAuthorizationController` and reports the settle:
 ///
 /// ```swift
@@ -52,10 +51,9 @@ public final class SystemCredentialOperation: OperationFull, @unchecked Sendable
 
     /// Starts an attempt around one authorization request and emits its start events.
     /// `autoTriggered` marks a sheet fired by the integration without a user gesture (screen
-    /// entry) — following the web `-auto` spec-type convention it suffixes the spec type and
-    /// flags the start as `ignoreAsInteraction`; pass `false` for button-triggered calls.
-    /// `assertionOptions` is the WebAuthn request JSON when a passkey option is included (rides
-    /// on the ceremony start, like the web SDK).
+    /// entry). It adds the `-auto` suffix to the spec type and flags the start as
+    /// `ignoreAsInteraction`; pass `false` for button-triggered calls. `assertionOptions` is the
+    /// WebAuthn request JSON when a passkey option is included (it rides on the ceremony start).
     public func begin(
         requested: [RequestedOption],
         preferImmediatelyAvailable: Bool = false,
@@ -109,7 +107,7 @@ public final class SystemCredentialOperation: OperationFull, @unchecked Sendable
         }
 
         /// The ceremony settled with a credential of `type`. For a passkey pick, pass the WebAuthn
-        /// `assertionResponse` JSON — the backend matches it to the stored passkey to resolve the
+        /// `assertionResponse` JSON. The backend matches it to the stored passkey to resolve the
         /// authenticator model (AAGUID) shown in the funnel and user search; without it the pick
         /// still classifies, just without authenticator attribution.
         public func resolved(
@@ -139,7 +137,7 @@ public final class SystemCredentialOperation: OperationFull, @unchecked Sendable
                 options: options)
         }
 
-        /// The ceremony failed — dismissal, no credential, provider error. Ships the raw platform
+        /// The ceremony failed (dismissal, no credential, provider error). Ships the raw platform
         /// error; the backend owns the semantic mapping, including telling an instant
         /// no-credential answer from a dismissal.
         public func failed(_ error: any Error, options: StepOptions? = nil) {

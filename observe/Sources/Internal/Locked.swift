@@ -1,7 +1,7 @@
 import Foundation
 
 /// Minimal lock-protected box for the few tracker fields read synchronously from any thread
-/// (the port of the Android SDK's `@Volatile` fields). `NSLock`-based — `Mutex` needs iOS 18.
+/// without hopping onto the SDK actor. `NSLock`-based because `Mutex` needs iOS 18.
 final class Locked<Value>: @unchecked Sendable {
     private let lock = NSLock()
     private var stored: Value

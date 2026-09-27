@@ -1,7 +1,7 @@
 import Foundation
 
-/// Why a delivery attempt happened. Native vocabulary — free-form string on the wire, deliberately
-/// disjoint from the web values where the trigger differs (`background` instead of `pagehide`).
+/// Why a delivery attempt happened. Free-form string on the wire; values name the native trigger
+/// (e.g. `background` for the app leaving the foreground).
 enum FlushReason: String {
     case timer
     case backoff
@@ -45,7 +45,7 @@ final class EventQueue {
     private let telemetryBuffer: TelemetryBuffer
     private let lowBuffer: LowBuffer
     private let logger: ObserveLogger
-    /// Invoked with the raw body of a fresh config response — cached for the next boot snapshot.
+    /// Invoked with the raw body of a fresh config response, cached for the next boot snapshot.
     private let onConfigReceived: (String) -> Void
     /// Routes a wake-up back into the owning actor, which schedules delivery.
     private let signal: @Sendable (QueueSignal) -> Void
@@ -168,7 +168,7 @@ final class EventQueue {
                 flushReason = .backoff
 
             default:
-                // Permanent rejection — the server understood and refused. Drop the batch.
+                // Permanent rejection: the server understood and refused. Drop the batch.
                 telemetryBuffer.removeDelivered(telemetry)
                 lowBuffer.removeDelivered(lows)
                 logger.warn("batch rejected with status \(status ?? -1); dropping \(batchEntries.count) events")

@@ -3,7 +3,7 @@ import LocalAuthentication
 import UIKit
 
 /// Instrumented `ASAuthorizationController` run: request mix, options, timing and the typed
-/// settle are probed. This is the call-site observation layer from the research doc — the exact
+/// settle are probed. This is the call-site observation layer from the research doc: the exact
 /// seam the SDK's passkey / system-credential operations formalize.
 ///
 /// One instance per ceremony; it retains itself until the delegate settles (the controller holds
@@ -76,7 +76,7 @@ final class Ceremony: NSObject {
 
     private var msSinceStart: Int { Int(Date().timeIntervalSince(startedAt) * 1000) }
 
-    /// S32 — what the biometry capability probe says right before the ceremony ("ok" or the
+    /// S32: what the biometry capability probe says right before the ceremony ("ok" or the
     /// `LAError` code, e.g. -8 = lockout).
     private static var biometryState: String {
         var error: NSError?

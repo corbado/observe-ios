@@ -85,7 +85,7 @@ final class PasswordLoginModel: ObservableObject {
     }
 }
 
-/// S11 (+ S15–S19 as tester actions) — the classic identifier+password one-screen form: a
+/// S11 (+ S15–S19 as tester actions): the classic identifier+password one-screen form. A
 /// QuickType chip on either field fills both after Face ID. The richest AutoFill observation
 /// surface; nothing fires automatically.
 struct LoginFormScreen: View {
@@ -109,7 +109,7 @@ struct LoginFormScreen: View {
     }
 }
 
-/// S12 — password fill with the identifier known (native2 pattern): post-identifier password
+/// S12: password fill with the identifier known (native2 pattern). Post-identifier password
 /// screen, chip fills the password only. A hidden 1pt `.username` field carries the identifier so
 /// the system can pair the credential (save prompt, chip scoping).
 struct LoginFormPasswordScreen: View {
@@ -141,7 +141,7 @@ struct LoginFormPasswordScreen: View {
     }
 }
 
-/// S13 — identifier-only fill on a lone identifier field. Continue runs the server-side
+/// S13: identifier-only fill on a lone identifier field. Continue runs the server-side
 /// identifier check and moves on to the password screen mid-flow.
 struct LoginFormIdentifierScreen: View {
     let context: ScreenContext

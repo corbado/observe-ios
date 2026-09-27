@@ -53,7 +53,7 @@ import Testing
         var values = try file.resourceValues(forKeys: [.isExcludedFromBackupKey])
         #expect(values.isExcludedFromBackup == true)
 
-        // remove() rewrites atomically (rename) — the exclusion must be re-applied.
+        // remove() rewrites atomically (rename), so the exclusion must be re-applied.
         outbox.append(entry("b"))
         outbox.remove(["a"])
         values = try file.resourceValues(forKeys: [.isExcludedFromBackupKey])

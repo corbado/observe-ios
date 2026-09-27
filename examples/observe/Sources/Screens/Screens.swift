@@ -14,7 +14,7 @@ struct SituationScreen: Identifiable {
     var flowName: String?
     /// Remembered-identifier session (the reference-suite convention for post-identifier starts):
     /// a direct flow start on this screen carries the remembered user on `flow_started` and emits
-    /// NO provide-identifier events — the identifier was never typed this session.
+    /// NO provide-identifier events, since the identifier was never typed this session.
     var rememberedIdentifier = false
     var content: (ScreenContext) -> AnyView = { _ in AnyView(EmptyView()) }
 }
@@ -32,7 +32,7 @@ struct ScreenContext {
     let flowActive: Bool
     /// The identifier a remembered-identifier screen starts with.
     let rememberedIdentifier: String
-    /// Navigate to another screen WITHOUT resetting the flow — mid-flow transitions. The target
+    /// Navigate to another screen WITHOUT resetting the flow (mid-flow transitions). The target
     /// screen must not re-emit a flow start; it emits its own decision on arrival.
     let navigate: (String) -> Void
     /// The login completed (flow_finished already emitted by the screen): show the success screen.

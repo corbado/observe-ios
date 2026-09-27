@@ -4,15 +4,15 @@ import Foundation
 ///
 /// - **sessionId** (long horizon): persisted with a last-activity timestamp; rotated when
 ///   inactivity exceeds the configured window. Rotation is checked at process start and on
-///   foreground transitions. The native equivalent of the web SDK's continuity session.
+///   foreground transitions. Keeps one session across app launches.
 /// - **processId** (short-lived): a uuidv7 minted at process start, memory-only, sent in the
 ///   `tabId` wire field so the backend can split interleaved streams of one session by process
-///   incarnation — exactly what per-tab ids do on web.
+///   incarnation.
 ///
 /// The **seq** counter exists solely to order events sharing the same millisecond timestamp; it
 /// is deliberately in-memory only, starting at 0 per process. Two process incarnations cannot
 /// emit events within the same millisecond, so `(timestamp, seq)` stays a correct sort key across
-/// restarts without persisting anything — a continuing session may therefore reuse seq values
+/// restarts without persisting anything. A continuing session may therefore reuse seq values
 /// after a restart (distinguishable by `tabId`), which the backend must not read as parallel
 /// streams for app traffic.
 ///
@@ -89,6 +89,6 @@ final class SessionManager {
         prefs.updateSession(id: sessionId, lastActivityAt: currentTime)
     }
 
-    /// Throttle for last-activity persistence — every event would otherwise write defaults.
+    /// Throttle for last-activity persistence; every event would otherwise write defaults.
     private static let activityWriteIntervalMs: Int64 = 30_000
 }

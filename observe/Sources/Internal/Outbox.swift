@@ -1,19 +1,19 @@
 import Foundation
 
 /// Durable event outbox: a JSONL (one JSON object per line) append-only file in app-private
-/// storage. Events are written through at enqueue time so they survive process death — the last
-/// reliable delivery mechanism when iOS suspends or kills the app.
+/// storage. Events are written through at enqueue time so they survive process death; this is the
+/// last reliable delivery mechanism when iOS suspends or kills the app.
 ///
 /// Design notes:
 /// - Appending is O(1); UserDefaults would rewrite its whole plist per event.
 /// - A torn write from process death corrupts at most the last line; recovery parses line by line
 ///   and skips anything unparsable.
-/// - Capped at 500 entries (same cap as the web SDK's outbox); when full, the oldest entries are
+/// - Capped at 500 entries; when full, the oldest entries are
 ///   dropped (compaction rewrites the file).
 /// - The file is excluded from iCloud backup (telemetry must not restore onto a new device) and
 ///   protected `completeUntilFirstUserAuthentication` (writable while backgrounded, still
 ///   encrypted at rest). Both attributes are re-applied after every path that creates or
-///   atomically replaces the file — a rename drops them.
+///   atomically replaces the file, because a rename drops them.
 ///
 /// All access is on the SDK's internal actor.
 final class Outbox {
@@ -67,7 +67,7 @@ final class Outbox {
                 try line.write(to: file, options: .atomic)
                 applyFileAttributes()
             } else {
-                // The file exists but could not be opened (transient) — dropping this one entry
+                // The file exists but could not be opened (transient). Dropping this one entry
                 // is the only safe outcome; a full-file write here would truncate the outbox.
                 logger.warn("outbox append failed: could not open existing file")
                 return

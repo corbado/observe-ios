@@ -1,5 +1,5 @@
-/// Predefined auth event names. Wire values are snake_case and must match the web SDK's
-/// `AuthEventName` exactly — the backend classifier keys off them.
+/// Predefined auth event names. Wire values are snake_case and part of the ingest contract; the
+/// backend classifier keys off them, so they must match exactly.
 public enum AuthEventName: String, Sendable {
     case flowStarted = "flow_started"
     case flowDecided = "flow_decided"
@@ -20,15 +20,14 @@ public enum AuthEventName: String, Sendable {
     case conversion = "conversion"
 }
 
-/// Subflow types understood by the backend classifier. Wire values are hyphenated and shared with
-/// the web SDK's `SubflowType`.
+/// Subflow types understood by the backend classifier. Wire values are hyphenated and part of the
+/// ingest contract.
 public enum SubflowType: String, Sendable {
     case passkeyEnrollment = "passkey-enrollment"
     case passkeyLogin = "passkey-login"
 
-    /// System credential chooser (iOS `ASAuthorizationController`; Android
-    /// Credential Manager sheet; web `uiMode: 'immediate'`). Includes passkey-only entry sheets —
-    /// dedicated passkey buttons use `passkeyLogin`.
+    /// System credential chooser (`ASAuthorizationController`). Includes passkey-only entry
+    /// sheets; dedicated passkey buttons use `passkeyLogin`.
     case systemCredential = "system-credential"
     case emailOtp = "email-otp"
     case emailLink = "email-link"

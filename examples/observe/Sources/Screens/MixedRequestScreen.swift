@@ -2,7 +2,7 @@ import AuthenticationServices
 import CorbadoObserve
 import SwiftUI
 
-/// S5/S6 — the WWDC22 launch pattern: one `ASAuthorizationController` carrying a passkey
+/// S5/S6: the WWDC22 launch pattern. One `ASAuthorizationController` carrying a passkey
 /// assertion request and a saved-password request; the system shows a single chooser and hands
 /// back exactly one credential of a type unknown at call time. That is what the system-credential
 /// subflow encapsulates. The password-only request (S6) is the degenerate case.

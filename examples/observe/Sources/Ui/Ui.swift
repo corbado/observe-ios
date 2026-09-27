@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// Shared style kit: big type, pill buttons, generous spacing — the same look as the Android
-/// example app.
+/// Shared style kit: big type, pill buttons, generous spacing.
 enum Theme {
     static let ink = Color(red: 0.06, green: 0.09, blue: 0.16)
     static let inkMuted = Color(red: 0.39, green: 0.45, blue: 0.55)

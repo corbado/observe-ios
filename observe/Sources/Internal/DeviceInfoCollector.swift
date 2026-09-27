@@ -2,11 +2,11 @@ import Foundation
 import LocalAuthentication
 import UIKit
 
-/// Native device info collection — system frameworks only, and only APIs that are cheap,
-/// non-blocking, non-throwing and permission-free (no probe threads or timeouts needed, unlike
-/// Android's binder calls). Bluetooth is deliberately never probed: instantiating
-/// `CBCentralManager` triggers the Bluetooth permission dialog, and every iPhone has Bluetooth
-/// anyway — the wire field stays absent.
+/// Native device info collection. Uses system frameworks only, and only APIs that are cheap,
+/// non-blocking, non-throwing and permission-free, so no probe threads or timeouts are needed.
+/// Bluetooth is deliberately never probed: instantiating `CBCentralManager` triggers the
+/// Bluetooth permission dialog, and every iPhone has Bluetooth anyway. The wire field stays
+/// absent.
 ///
 /// Runs on the main actor (UIKit reads); the result is handed back to the SDK actor.
 enum DeviceInfoCollector {
@@ -25,7 +25,7 @@ enum DeviceInfoCollector {
         )
     }
 
-    /// Machine identifier, e.g. "iPhone15,3" — the model granularity the funnel needs
+    /// Machine identifier, e.g. "iPhone15,3": the model granularity the analysis needs
     /// (`UIDevice.model` is just "iPhone").
     private static func machineIdentifier() -> String? {
         var systemInfo = utsname()
@@ -44,7 +44,7 @@ enum DeviceInfoCollector {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
     }
 
-    /// True BCP-47 tag ("de-DE") — `Locale.identifier` would leak ICU keyword extensions
+    /// True BCP-47 tag ("de-DE"). `Locale.identifier` would leak ICU keyword extensions
     /// (`de_DE@calendar=buddhist`) into cross-platform grouping.
     private static func localeTag() -> String? {
         if #available(iOS 16.0, *) {
@@ -58,9 +58,8 @@ enum DeviceInfoCollector {
         return parts.isEmpty ? nil : parts.joined(separator: "-")
     }
 
-    /// Device-owner authentication capability, unified across platforms as
-    /// none | code | bio-face | bio-touch | bio (Android reports bio-strong/bio-weak instead of
-    /// the modality). `canEvaluatePolicy` is a capability check — it never prompts.
+    /// Device-owner authentication capability as none | code | bio-face | bio-touch | bio.
+    /// `canEvaluatePolicy` is a capability check; it never prompts.
     private static func deviceOwnerAuth() -> String {
         let context = LAContext()
         if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) {
@@ -76,7 +75,7 @@ enum DeviceInfoCollector {
         return "none"
     }
 
-    /// Screen size in points plus the scale factor — same decomposition as the wire schema
+    /// Screen size in points plus the scale factor, the same decomposition as the wire schema
     /// (`widthPoints`/`heightPoints`/`scale`).
     @MainActor
     private static func screen() -> WireAppScreen? {

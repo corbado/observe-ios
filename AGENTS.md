@@ -27,8 +27,8 @@ swift format --in-place --recursive observe  # auto-format; lint --strict runs i
 swiftlint --strict                           # static analysis (CI-enforced)
 ```
 
-`TASKS.md` tracks open follow-ups; `docs/LIMITATIONS.md` the accepted platform gaps — keep both
-current (short bullets, no solution domain).
+`docs/LIMITATIONS.md` tracks the accepted platform gaps; keep it current (short bullets, no
+solution domain).
 
 CI: `.github/workflows/observe-ci.yml` (PRs + main). Releases: see `RELEASING.md`
 (repo-wide `v<semver>` tags — SPM cannot resolve per-library tags; the version constant in

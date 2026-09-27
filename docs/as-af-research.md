@@ -605,4 +605,4 @@ into the prose above.
 - **2026-09-03 · SDK consequence of S5/S6.** The system-credential "flag + 1001 ⇒ not shown"
   rule quoted above is gone: emission is eager (subflow start and ceremony start on `begin`),
   a probe flags both as `ignoreAsInteraction`, and every settle ships raw. Dismissal vs
-  no-credential under the flag is a backend duration rule (TASKS.md).
+  no-credential under the flag is a backend duration rule.

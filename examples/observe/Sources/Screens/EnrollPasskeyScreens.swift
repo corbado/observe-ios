@@ -1,7 +1,7 @@
 import CorbadoObserve
 import SwiftUI
 
-/// S9 — passkey registration. Settings variant (`manual`): user-initiated from an account menu.
+/// S9: passkey registration. Settings variant (`manual`): user-initiated from an account menu.
 /// Offer variant (`auto-manual`): shown automatically after a password login for accounts without
 /// a passkey (the server-driven upsell), confirmed or declined by the user. Existing ids ride as
 /// `excludedCredentials`, so enrolling twice reproduces the exclude-match error.

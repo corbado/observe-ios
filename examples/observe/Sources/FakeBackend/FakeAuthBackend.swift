@@ -1,6 +1,6 @@
 import Foundation
 
-/// The "backend" of the example app — no server, no network. Accounts live in UserDefaults so
+/// The "backend" of the example app: no server, no network. Accounts live in UserDefaults so
 /// they survive restarts, latency is simulated, and outcomes are controlled by magic values:
 ///
 /// - identifier starting `locked` → `.accountLocked`

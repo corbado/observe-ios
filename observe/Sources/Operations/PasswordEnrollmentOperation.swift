@@ -1,8 +1,7 @@
-/// Password-enrollment subflow operation: the user setting a new password — during signup
-/// (`SpecType.passwordSet`) or a recovery/reset flow (`SpecType.passwordReset`). Wire vocabulary
-/// mirrors the web SDK's `PasswordEnrollmentOperationFull`.
+/// Password-enrollment subflow operation: the user setting a new password, either during signup
+/// (`SpecType.passwordSet`) or in a recovery/reset flow (`SpecType.passwordReset`).
 public final class PasswordEnrollmentOperation: OperationFull, @unchecked Sendable {
-    /// Which enrollment situation this is (same wire values as web).
+    /// Which enrollment situation this is (wire values).
     public enum SpecType: String, Sendable {
         /// First-time password creation (signup).
         case passwordSet = "password-set"

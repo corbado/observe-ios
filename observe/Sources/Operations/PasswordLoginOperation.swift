@@ -1,6 +1,5 @@
-/// Password-login subflow operation. Wire vocabulary (step names, spec types, typed error codes)
-/// mirrors the web SDK's `PasswordLoginOperationFull` exactly — the backend classifier keys off
-/// it.
+/// Password-login subflow operation. Its step names, spec types and typed error codes are the
+/// wire vocabulary the backend classifier keys off.
 ///
 /// Typical shape:
 /// ```swift
@@ -12,7 +11,7 @@
 /// op.postResponse.errorTyped(.invalidPassword)      // known failure
 /// ```
 public final class PasswordLoginOperation: OperationFull, @unchecked Sendable {
-    /// Spec types distinguishing the password-form variants (same values as web).
+    /// Spec types distinguishing the password-form variants (wire values).
     public enum SpecType: String, Sendable {
         /// Identifier already known; the screen only asks for the password.
         case knownIdentifier = "password-known-identifier"
@@ -42,7 +41,7 @@ public final class PasswordLoginOperation: OperationFull, @unchecked Sendable {
     public let postResponse: StepHandle
 
     /// Conditional-UI passkey steps hosted on the password-login subflow (a passkey login offered
-    /// while the password form is visible is attributed to password-login, same as web).
+    /// while the password form is visible is attributed to password-login).
     public let cui: ConditionalUISteps
 
     init(tracker: ObserveTracker) {

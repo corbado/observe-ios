@@ -1,7 +1,7 @@
 import Foundation
 
-/// JSON value tree used for event payloads and the wire model — the Swift counterpart of the
-/// Android SDK's `JsonObject` payloads. Literal conformances keep call sites map-like:
+/// JSON value tree used for event payloads and the wire model. Literal conformances keep call
+/// sites map-like:
 /// `["flowName": "login", "options": ["a", "b"]]`.
 public indirect enum JSONValue: Sendable, Equatable, Codable {
     case null
@@ -73,7 +73,7 @@ extension JSONValue: ExpressibleByNilLiteral, ExpressibleByBooleanLiteral, Expre
 }
 
 extension [String: JSONValue] {
-    /// Insert only when the value is present — the Swift stand-in for Kotlin's `value?.let { put(...) }`.
+    /// Inserts the value only when it is present.
     mutating func putIfPresent(_ key: String, _ value: JSONValue?) {
         if let value { self[key] = value }
     }

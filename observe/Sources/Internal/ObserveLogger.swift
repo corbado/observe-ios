@@ -1,7 +1,7 @@
 import os
 
 /// Internal logger over unified logging. Quiet by default (warnings and errors only);
-/// `debug = true` at init enables verbose logging. Never throws — logging must not be able to
+/// `debug = true` at init enables verbose logging. Never throws, since logging must not be able to
 /// break the host app.
 struct ObserveLogger: Sendable {
     let debugEnabled: Bool

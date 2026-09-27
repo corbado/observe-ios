@@ -4,7 +4,7 @@ import Testing
 @testable import CorbadoObserve
 
 /// Runs against a dedicated UserDefaults suite (cleared per test) so the tracker integration
-/// suite — which owns the real `corbado_observe` suite and runs in parallel — cannot bleed in.
+/// suite (which owns the real `corbado_observe` suite and runs in parallel) cannot bleed in.
 @Suite(.serialized) struct SessionManagerTests {
     private static let suite = "corbado_observe_test_session"
 

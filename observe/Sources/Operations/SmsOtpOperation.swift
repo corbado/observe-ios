@@ -1,5 +1,5 @@
-/// SMS-OTP subflow operation. Wire vocabulary mirrors the web SDK's `SmsOtpOperationFull` —
-/// deliberately no `send` step (web parity; the sending is implied by the subflow start).
+/// SMS-OTP subflow operation. There is deliberately no `send` step: the sending is implied by the
+/// subflow start.
 ///
 /// ```swift
 /// let op = tracker.smsOtpOperation()
@@ -9,7 +9,7 @@
 /// op.postResponse.finished(options: StepOptions(userReference: user))
 /// ```
 public final class SmsOtpOperation: OperationFull, @unchecked Sendable {
-    /// Whether the OTP verifies a login or enrolls/verifies a new number (same values as web).
+    /// Whether the OTP verifies a login or enrolls/verifies a new number.
     public enum SpecType: String, Sendable {
         case login = "sms-otp-login"
         case enrollment = "sms-otp-enrollment"
