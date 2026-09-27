@@ -8,8 +8,8 @@ import Foundation
 /// - Appending is O(1); UserDefaults would rewrite its whole plist per event.
 /// - A torn write from process death corrupts at most the last line; recovery parses line by line
 ///   and skips anything unparsable.
-/// - Capped at 500 entries; when full, the oldest entries are
-///   dropped (compaction rewrites the file).
+/// - Capped at 500 entries; when full, the oldest entries are dropped (compaction rewrites the
+///   file).
 /// - The file is excluded from iCloud backup (telemetry must not restore onto a new device) and
 ///   protected `completeUntilFirstUserAuthentication` (writable while backgrounded, still
 ///   encrypted at rest). Both attributes are re-applied after every path that creates or

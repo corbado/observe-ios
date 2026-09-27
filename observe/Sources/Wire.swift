@@ -4,8 +4,7 @@ import Foundation
 ///
 /// The contract is owned by the backend (`corbado` repo, `backend/openapi/api_public_v1.yml`).
 /// Field names and event vocabulary must match exactly because the backend classifier keys off
-/// them. Never invent fields here; contract
-/// changes start in the backend OpenAPI spec.
+/// them. Never invent fields here; contract changes start in the backend OpenAPI spec.
 enum WireJson {
     static let encoder: JSONEncoder = JSONEncoder()
     static let decoder: JSONDecoder = JSONDecoder()

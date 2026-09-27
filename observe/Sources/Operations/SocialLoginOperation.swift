@@ -3,9 +3,9 @@ import Foundation
 /// Social-login subflow operation. The step names map directly onto native equivalents:
 /// `getRedirectUrl` is the preparation of the provider handoff (`ASWebAuthenticationSession`
 /// URL, or a provider SDK call including Sign in with Apple), `exchangeCode` is redeeming the
-/// provider's result with the host backend. An Apple/Google
-/// credential picked from a multi-option system chooser stays with `SystemCredentialOperation`;
-/// this operation is for the dedicated provider button flow.
+/// provider's result with the host backend. An Apple/Google credential picked from a
+/// multi-option system chooser stays with `SystemCredentialOperation`; this operation is for the
+/// dedicated provider button flow.
 public final class SocialLoginOperation: OperationFull, @unchecked Sendable {
     /// Where in the flow the social button lives (wire values).
     public enum SpecType: String, Sendable {

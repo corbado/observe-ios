@@ -1,8 +1,8 @@
 import Foundation
 
-/// The SDK's single serialization domain. All mutable tracking state (session, buffers, outbox, queue,
-/// config snapshot) lives here; the public `ObserveTracker` posts ordered jobs into it via its
-/// mailbox and never blocks the caller.
+/// The SDK's single serialization domain. All mutable tracking state (session, buffers, outbox,
+/// queue, config snapshot) lives here; the public `ObserveTracker` posts ordered jobs into it via
+/// its mailbox and never blocks the caller.
 actor TrackerCore {
     let logger: ObserveLogger
     private let transport: any Transporting
