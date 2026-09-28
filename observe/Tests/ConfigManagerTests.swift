@@ -51,12 +51,14 @@ private actor ManualConfigClock {
     }
 }
 
-/// Polls until `condition` holds or a 10s wall-clock deadline passes, so a stalled CI process
-/// does not exhaust the wait early.
+/// Polls until `condition` holds. Gives up only once both 200 polls and 10s have passed: a frozen
+/// CI process burns wall-clock time without polling, slow progress burns polls without time.
 func eventually(_ condition: @escaping @Sendable () async -> Bool) async {
     let deadline = DispatchTime.now().uptimeNanoseconds + 10_000_000_000
-    while DispatchTime.now().uptimeNanoseconds < deadline {
+    var polls = 0
+    while polls < 200 || DispatchTime.now().uptimeNanoseconds < deadline {
         if await condition() { return }
+        polls += 1
         try? await Task.sleep(nanoseconds: 1_000_000)
     }
     #expect(await condition())
