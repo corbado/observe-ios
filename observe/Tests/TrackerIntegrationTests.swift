@@ -8,10 +8,11 @@ final class CapturingTransport: Transporting {
     nonisolated func shutdown() {}
 
     let batches = Locked<[WireEventBatch]>([])
+    let configResponse = Locked<String?>(nil)
 
     func send(_ batch: WireEventBatch, configVersionHeader: String?) async -> TransportResult {
         batches.withLock { $0.append(batch) }
-        return TransportResult(statusCode: 200)
+        return TransportResult(statusCode: 200, configBody: configResponse.value)
     }
 
     var events: [WireEvent] { batches.value.flatMap(\.events) }
@@ -78,6 +79,115 @@ private actor GatedTransport: Transporting {
         }) {
             previous.destroy()
             await previous.awaitTermination()
+        }
+    }
+
+    @Test(arguments: [false, true]) @MainActor
+    func rawErrorPolicyGatesTraversalAndOnlyEnrichesErrorSteps(enabled: Bool) async throws {
+        UserDefaults(suiteName: "corbado_observe")?.set(
+            "{\"version\":\"raw-test\",\"rawErrors\":\(enabled)}", forKey: "cbo_sdk_config")
+        let (tracker, transport) = await makeTracker()
+        let diagnostic = ObservedDiagnosticError(domain: "provider", code: 42)
+        let options = StepOptions(
+            userReference: UserReference(userId: "user"), explicitTimestamp: 1234,
+            rawError: .error(diagnostic))
+        let step = tracker.passwordLoginOperation().customStep("test")
+        step.start(options: options)
+        step.finished(options: options)
+        tracker.trackCustom("subflow_step_error", options: options)
+        step.errorTyped(["error": ["code": "normalized"]], options: options)
+        tracker.destroy()
+        await tracker.awaitTermination()
+        let events = transport.events
+        #expect(events.count == 4)
+        for event in events.prefix(3) {
+            #expect(event.data.objectValue?["stepData"]?.objectValue?["rawError"] == nil)
+        }
+        let event = try #require(events.last)
+        let data = try #require(event.data.objectValue?["stepData"]?.objectValue)
+        #expect(data["error"] == ["code": "normalized"])
+        #expect((data["rawError"] != nil) == enabled)
+        #expect(diagnostic.reads.value == (enabled ? 1 : 0))
+        #expect(!diagnostic.readOnMain.value)
+        #expect(event.timestamp == 1234)
+        #expect(event.user?.userId == "user")
+        #expect(events.map(\.seq) == [0, 1, 2, 3])
+        if enabled {
+            #expect(data["rawError"]?.objectValue?["value"]?.objectValue?["code"] == 42)
+        }
+    }
+
+    @Test func rawErrorDefaultAndCollectionSwitchNeverTraverseDiagnostics() async {
+        let (tracker, transport) = await makeTracker()
+        let diagnostic = ObservedDiagnosticError(domain: "provider", code: 42)
+        let options = StepOptions(rawError: .error(diagnostic))
+        let step = tracker.passwordLoginOperation().customStep("test")
+        step.errorTyped(["error": ["code": "kept"]], options: options)
+        tracker.setCollectionEnabled(false)
+        step.errorTyped(["error": ["code": "dropped"]], options: options)
+        tracker.destroy()
+        await tracker.awaitTermination()
+        #expect(diagnostic.reads.value == 0)
+        #expect(transport.events.count == 1)
+        #expect(transport.events.first?.data.objectValue?["stepData"]?.objectValue?["rawError"] == nil)
+    }
+
+    @Test func remoteRawErrorPolicyAppliesOnNextInitialization() async throws {
+        let transport = CapturingTransport()
+        let options = ObserveOptions(projectId: "pro-test", apiBaseUrl: "https://example.invalid")
+        let enabled = "{\"version\":\"enabled\",\"rawErrors\":true}"
+        transport.configResponse.value = enabled
+        let first = await makeTracker(options: options, transport: transport)
+        let diagnostic = ObservedDiagnosticError(domain: "provider", code: 42)
+        let stepOptions = StepOptions(rawError: .error(diagnostic))
+        first.passwordLoginOperation().customStep("first").errorTyped([:], options: stepOptions)
+        first.flush()
+        for _ in 0..<200 {
+            if UserDefaults(suiteName: "corbado_observe")?.string(forKey: "cbo_sdk_config") == enabled { break }
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        #expect(UserDefaults(suiteName: "corbado_observe")?.string(forKey: "cbo_sdk_config") == enabled)
+        first.passwordLoginOperation().customStep("still_off").errorTyped([:], options: stepOptions)
+        first.destroy()
+        await first.awaitTermination()
+        #expect(diagnostic.reads.value == 0)
+
+        let disabled = "{\"version\":\"disabled\",\"rawErrors\":false}"
+        transport.configResponse.value = disabled
+        let second = await makeTracker(options: options, transport: transport)
+        second.passwordLoginOperation().customStep("enabled").errorTyped([:], options: stepOptions)
+        second.destroy()
+        await second.awaitTermination()
+        #expect(diagnostic.reads.value == 1)
+        #expect(UserDefaults(suiteName: "corbado_observe")?.string(forKey: "cbo_sdk_config") == disabled)
+
+        let third = await makeTracker(options: options, transport: transport)
+        third.passwordLoginOperation().customStep("disabled").errorTyped([:], options: stepOptions)
+        third.destroy()
+        await third.awaitTermination()
+        #expect(diagnostic.reads.value == 1)
+        let rawValues = transport.events.map { $0.data.objectValue?["stepData"]?.objectValue?["rawError"] != nil }
+        #expect(rawValues == [false, false, true, false])
+    }
+
+    @Test func rawErrorsReachAllCeremonyHelpers() async {
+        UserDefaults(suiteName: "corbado_observe")?.set("{\"rawErrors\":true}", forKey: "cbo_sdk_config")
+        let (tracker, transport) = await makeTracker()
+        let error = NSError(domain: "provider", code: 42)
+        let options = StepOptions(rawError: .error(error))
+        tracker.systemCredentialOperation().begin(requested: [.passkey]).failed(error, options: options)
+        tracker.passkeyLoginOperation().begin(specType: .noIdentifier).ceremonyFailed(error, options: options)
+        tracker.passkeyEnrollmentOperation().begin().ceremonyFailed(error, options: options)
+        tracker.passwordLoginOperation().cui.ceremonyFailed(error, options: options)
+        tracker.passwordLoginOperation().customStep("backend").error(error, options: options)
+        tracker.destroy()
+        await tracker.awaitTermination()
+        let errors = transport.events.filter { $0.name == "subflow_step_error" }
+        #expect(errors.count == 5)
+        for event in errors {
+            let data = event.data.objectValue?["stepData"]?.objectValue
+            #expect(data?["error"]?.objectValue?["code"] == "provider:42")
+            #expect(data?["rawError"]?.objectValue?["value"]?.objectValue?["code"] == 42)
         }
     }
 
@@ -381,5 +491,16 @@ private actor GatedTransport: Transporting {
         #expect(events.map(\.name) == (0..<5).map { "event_\($0)" })
         #expect(events.map(\.seq) == events.map(\.seq).sorted())
         #expect(Set(transport.batches.value.map(\.sessionID)).count == 1)
+    }
+}
+
+private final class ObservedDiagnosticError: NSError, @unchecked Sendable {
+    let reads = Locked(0)
+    let readOnMain = Locked(false)
+
+    override var userInfo: [String: Any] {
+        reads.withLock { $0 += 1 }
+        if Thread.isMainThread { readOnMain.value = true }
+        return [NSLocalizedDescriptionKey: "Diagnostic"]
     }
 }

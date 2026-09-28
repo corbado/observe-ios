@@ -104,8 +104,19 @@ actor TrackerCore {
         user: UserReference?,
         tags: [String: String]?,
         screen: String?,
-        finishedFlowName: String?
+        finishedFlowName: String?,
+        rawError: RawError? = nil,
+        rawErrorLimits: RawErrorOptions = RawErrorOptions()
     ) {
+        var data = data
+        // Resolve policy on the worker before touching diagnostic objects or encoding them.
+        if configBox.value.rawErrors, let rawError,
+            var stepData = data["stepData"]?.objectValue,
+            let serialized = serializeRawError(rawError, options: rawErrorLimits)
+        {
+            stepData["rawError"] = serialized
+            data["stepData"] = .object(stepData)
+        }
         let event = WireEvent(
             id: id,
             timestamp: timestamp,
