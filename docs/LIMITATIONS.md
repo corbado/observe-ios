@@ -31,7 +31,8 @@ Known, accepted gaps of the iOS Observe SDK versus its Android/web siblings.
 - Swift errors do not retain throw-site stacks. Raw diagnostics only transmit explicitly supplied
   stacks, with separate stack opt-in. Arbitrary NSError `userInfo` and Swift associated values are
   excluded; integrations must provide an explicit JSON projection for additional fields.
-- Raw-error diagnostics are off unless server policy or `SdkConfigOverrides` enables them.
+- Raw-error diagnostics are off unless server policy or `SdkConfigOverrides` enables them; the
+  Corbado app policy enables them, so only a cold first launch before any fetch runs without them.
 - `destroy()` drains with configured retries and can keep the worker alive through backoff.
   A subsequent `initialize()` queues work until that shutdown completes before opening shared
   storage; those replacement-instance calls are not durable while waiting.
