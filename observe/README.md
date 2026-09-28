@@ -93,7 +93,8 @@ attempt.failed(error, options: StepOptions(rawError: .error(error)))
 // Also supported by ceremonyFailed, StepHandle.error/errorTyped and conditional-UI errors.
 ```
 
-Both an explicit `rawError` input and cached server config `rawErrors: true` are required.
+Both an explicit `rawError` input and an effective `rawErrors: true` policy (live server config or
+`SdkConfigOverrides`) are required.
 The native fallback is **off**. The policy follows the live configuration described above, so
 enabling or disabling it on the server takes effect without restarting the SDK. A `rawErrors`
 override in `SdkConfigOverrides` wins over server policy. Ordinary `.error(error)` calls do not opt in.
