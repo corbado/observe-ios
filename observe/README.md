@@ -24,7 +24,7 @@ targets: [
 ```swift
 import CorbadoObserve
 
-// App startup (explicit — the SDK is inert until you call this):
+// App startup (explicit; the SDK is inert until you call this):
 let tracker = CorbadoObserve.initialize(
     options: ObserveOptions(projectId: "pro-...", apiBaseUrl: "https://api.cloud.corbado.io"))
 
@@ -54,9 +54,8 @@ See [`examples/observe`](../examples/observe/) for a runnable app and
 
 The SDK starts immediately with its last-known cached policy (or native defaults). It fetches
 `GET /v1/observe/config/{projectId}?sdkName=observe-ios` independently of event delivery, then
-applies valid policy live and caches it for the next launch. Event requests no longer negotiate
-configuration or consume configuration response bodies. The backend must support the `sdkName`
-selector so native clients receive app policy; deploy that backend support before releasing this SDK.
+applies valid policy live and caches it for the next launch. Event delivery does not carry
+configuration. The `sdkName` selector makes the backend return the native app policy.
 
 Config requests have a 10-second timeout and retry transient network errors, 408, 429 and 5xx
 responses after 1 second and then 3 seconds. A `Retry-After` header suppresses these immediate
