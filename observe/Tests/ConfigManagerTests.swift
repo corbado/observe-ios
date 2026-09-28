@@ -51,8 +51,11 @@ private actor ManualConfigClock {
     }
 }
 
+/// Polls until `condition` holds or a 10s wall-clock deadline passes, so a stalled CI process
+/// does not exhaust the wait early.
 func eventually(_ condition: @escaping @Sendable () async -> Bool) async {
-    for _ in 0..<200 {
+    let deadline = DispatchTime.now().uptimeNanoseconds + 10_000_000_000
+    while DispatchTime.now().uptimeNanoseconds < deadline {
         if await condition() { return }
         try? await Task.sleep(nanoseconds: 1_000_000)
     }
