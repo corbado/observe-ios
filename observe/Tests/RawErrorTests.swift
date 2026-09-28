@@ -60,6 +60,8 @@ import Testing
         let bounded = try #require(
             serializeRawError(.error(outer), options: RawErrorOptions(maxBreadth: 1, maxCauseDepth: 0))?
                 .objectValue?["value"]?.objectValue)
+        #expect(bounded["domain"] == "outer")
+        #expect(bounded["code"] == 1)
         #expect(bounded["cause"]?.stringValue != nil)
         if case .array(let causes) = bounded["causes"] {
             #expect(causes.count == 2)
