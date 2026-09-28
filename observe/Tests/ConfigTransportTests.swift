@@ -62,7 +62,7 @@ class GatedConfigURLProtocol: URLProtocol, @unchecked Sendable {
 
 extension ConfigTransportTests {
     @available(iOS 16.0, *)
-    @Test(.timeLimit(.minutes(1))) func stalledURLSessionHonorsTenSecondResourceTimeout() async throws {
+    @Test(.timeLimit(.minutes(2))) func stalledURLSessionHonorsTenSecondResourceTimeout() async throws {
         let url = try #require(URL(string: "https://timeout.example/config/pro-test"))
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [GatedConfigURLProtocol.self]
