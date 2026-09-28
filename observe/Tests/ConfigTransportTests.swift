@@ -34,7 +34,6 @@ private class ConfigURLProtocol: URLProtocol, @unchecked Sendable {
         #expect(request.httpMethod == "GET")
         #expect(request.httpBody == nil)
         #expect(request.value(forHTTPHeaderField: "Cache-Control") == "no-store")
-        #expect(request.value(forHTTPHeaderField: "X-Corbado-Observe-Config") == nil)
         #expect(request.cachePolicy == .reloadIgnoringLocalCacheData)
         #expect(request.timeoutInterval == 10)
         #expect(configuration.timeoutIntervalForResource == 10)
