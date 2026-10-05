@@ -414,6 +414,19 @@ private actor GatedTransport: Transporting {
         #expect(other.getDataPolicy() == nil)
     }
 
+    @Test func recoveredEventsCarryTheInitDataPolicy() async {
+        let (previous, _) = await makeTracker(
+            options: ObserveOptions(projectId: "pro-test", apiBaseUrl: "https://example.invalid", dataPolicy: 1))
+        previous.setTransportEnabled(false)
+        previous.trackCustom("recovered")
+
+        let (tracker, transport) = await makeTracker(
+            options: ObserveOptions(projectId: "pro-test", apiBaseUrl: "https://example.invalid", dataPolicy: 2))
+        _ = await drain(tracker, transport, eventCount: 1)
+        let batch = transport.batches.value.first { $0.events.contains { $0.name == "recovered" } }
+        #expect(batch?.meta?.dataPolicy == 2)
+    }
+
     @Test func eventsShareOneSessionAndOrderBySeq() async {
         let (tracker, transport) = await makeTracker()
 

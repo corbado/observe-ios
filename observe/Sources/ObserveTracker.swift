@@ -17,7 +17,7 @@ public final class ObserveTracker: Sendable {
 
     private let configBox = Locked<SdkConfig>(.default)
     private let sessionIdBox = Locked<String?>(nil)
-    private let dataPolicyBox = Locked<Int?>(nil)
+    private let dataPolicyBox: Locked<Int?>
     private let currentScreenBox = Locked<String?>(nil)
     private let collectionEnabledBox = Locked(true)
     private let destroyedBox = Locked(false)
@@ -29,6 +29,17 @@ public final class ObserveTracker: Sendable {
         self.options = options
         let logger = ObserveLogger(debug: options.debug)
         self.logger = logger
+
+        // Seeded before the start job exists, so the queue's recovery flush already carries it.
+        let initialDataPolicy = options.dataPolicy.flatMap { code -> Int? in
+            guard (0...255).contains(code) else {
+                logger.debug("Ignoring invalid data policy code \(code)")
+                return nil
+            }
+            return code
+        }
+        let dataPolicyBox = Locked<Int?>(initialDataPolicy)
+        self.dataPolicyBox = dataPolicyBox
 
         let (stream, continuation) = AsyncStream<Job>.makeStream()
         jobs = continuation
@@ -62,7 +73,6 @@ public final class ObserveTracker: Sendable {
             await previousShutdown?.value
             core.start()
         }
-        if let code = options.dataPolicy { setDataPolicy(code) }
 
         // Registered synchronously (NotificationCenter registration is thread-safe and cheap)
         // so destroy() can always unregister; a deferred registration would race it.
