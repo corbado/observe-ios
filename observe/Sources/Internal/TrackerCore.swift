@@ -93,11 +93,14 @@ actor TrackerCore {
         clientEnvHandleCreatedAt = prefs.clientEnvHandleCreatedAt
 
         // A code set since init (option or setDataPolicy) overlays the persisted one and is
-        // persisted by its own job.
+        // written back; otherwise the persisted one is restored. Precedes the queue's recovery.
         let persisted = prefs.dataPolicy(projectId: options.projectId)
-        dataPolicyBox.withLock { code in
-            if code == nil { code = persisted }
+        let overlaid = dataPolicyBox.withLock { code -> Bool in
+            if code != nil { return true }
+            code = persisted
+            return false
         }
+        if overlaid { persistDataPolicy() }
 
         queue.start()
     }
