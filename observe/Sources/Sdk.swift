@@ -4,5 +4,5 @@
 /// release process (see RELEASING.md) and must always match the repo tag being released.
 public enum Sdk {
     public static let name = "observe-ios"
-    public static let version = "0.1.1"
+    public static let version = "0.1.2-dev"
 }
