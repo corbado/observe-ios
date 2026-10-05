@@ -47,5 +47,23 @@ The tracker also reports the app's active-state churn around system UI (`window-
 `window-focus`) while a ceremony runs or a field is focused — the Face ID gate of a password
 fill and every system sheet show up there. See `docs/as-af-signal-spec.md` for what these lows mean.
 
+## Data policy
+
+Select one of the project's data policies configured in Corbado (they control retention) by
+its code, 0...255 with 0 as the project default:
+
+```swift
+ObserveOptions(projectId: "pro-...", apiBaseUrl: "https://api.cloud.corbado.io", dataPolicy: 0)
+tracker.setDataPolicy(1)   // e.g. once the user agreed to extended processing
+tracker.getDataPolicy()    // current code, nil while none was ever set
+```
+
+The persisted code loads asynchronously during initialization, so pass the code you intend
+rather than deciding based on `getDataPolicy()` right after init.
+
+Once set, the code is sent with every batch and persisted per project across launches,
+`resetSession` and `destroy`; it is only ever overwritten, never cleared. The init option
+overlays the persisted code; invalid codes are ignored. Nothing is sent until a code is set.
+
 See [`examples/observe`](../examples/observe/) for a runnable app and
 [limitations](../docs/LIMITATIONS.md) for known platform gaps.

@@ -13,6 +13,8 @@ actor TrackerCore {
     /// watcher and the buffers' gate closures without hopping onto the actor.
     private let configBox: Locked<SdkConfig>
     private let sessionIdBox: Locked<String?>
+    /// Live data policy code, also written synchronously by `ObserveTracker.setDataPolicy`.
+    private let dataPolicyBox: Locked<Int?>
 
     let session: SessionManager
     let telemetryBuffer: TelemetryBuffer
@@ -34,6 +36,7 @@ actor TrackerCore {
         transport: any Transporting,
         configBox: Locked<SdkConfig>,
         sessionIdBox: Locked<String?>,
+        dataPolicyBox: Locked<Int?>,
         signal: @escaping @Sendable (QueueSignal) -> Void
     ) {
         self.transport = transport
@@ -41,6 +44,7 @@ actor TrackerCore {
         self.logger = logger
         self.configBox = configBox
         self.sessionIdBox = sessionIdBox
+        self.dataPolicyBox = dataPolicyBox
 
         session = SessionManager(prefs: prefs, inactivityWindowMs: { configBox.value.sessionInactivityMs })
         telemetryBuffer = TelemetryBuffer(
@@ -62,6 +66,7 @@ actor TrackerCore {
             transport: transport,
             outbox: outbox,
             config: { configBox.value },
+            dataPolicy: { dataPolicyBox.value },
             sdkInfo: WireSdkInfo(name: Sdk.name, version: Sdk.version),
             telemetryBuffer: telemetryBuffer,
             lowBuffer: lowBuffer,
@@ -87,7 +92,20 @@ actor TrackerCore {
         }
         clientEnvHandleCreatedAt = prefs.clientEnvHandleCreatedAt
 
+        // A code set since init (option or setDataPolicy) overlays the persisted one and is
+        // persisted by its own job.
+        let persisted = prefs.dataPolicy(projectId: options.projectId)
+        dataPolicyBox.withLock { code in
+            if code == nil { code = persisted }
+        }
+
         queue.start()
+    }
+
+    /// Writes the current code, never clears it.
+    func persistDataPolicy() {
+        guard let code = dataPolicyBox.value else { return }
+        prefs.setDataPolicy(code, projectId: options.projectId)
     }
 
     func setDeviceInfo(_ data: WireDeviceInfoDataApp) {

@@ -41,6 +41,9 @@ final class EventQueue {
     private let outbox: Outbox
     /// Deferred: the boot-snapshot config is resolved on the SDK actor after construction.
     private let config: () -> SdkConfig
+    /// Read per request, so a changed code applies to the next batch, retries and recovered
+    /// outbox events included.
+    private let dataPolicy: () -> Int?
     private let sdkInfo: WireSdkInfo
     private let telemetryBuffer: TelemetryBuffer
     private let lowBuffer: LowBuffer
@@ -63,6 +66,7 @@ final class EventQueue {
         transport: any Transporting,
         outbox: Outbox,
         config: @escaping () -> SdkConfig,
+        dataPolicy: @escaping () -> Int?,
         sdkInfo: WireSdkInfo,
         telemetryBuffer: TelemetryBuffer,
         lowBuffer: LowBuffer,
@@ -73,6 +77,7 @@ final class EventQueue {
         self.transport = transport
         self.outbox = outbox
         self.config = config
+        self.dataPolicy = dataPolicy
         self.sdkInfo = sdkInfo
         self.telemetryBuffer = telemetryBuffer
         self.lowBuffer = lowBuffer
@@ -143,7 +148,8 @@ final class EventQueue {
                     transport: "native",
                     flushReason: flushReason.rawValue,
                     retryCount: consecutiveFailures > 0 ? consecutiveFailures : nil,
-                    configVersion: cfg.version.isEmpty ? nil : cfg.version
+                    configVersion: cfg.version.isEmpty ? nil : cfg.version,
+                    dataPolicy: dataPolicy()
                 )
             )
 

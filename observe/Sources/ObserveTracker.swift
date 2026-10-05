@@ -17,6 +17,7 @@ public final class ObserveTracker: Sendable {
 
     private let configBox = Locked<SdkConfig>(.default)
     private let sessionIdBox = Locked<String?>(nil)
+    private let dataPolicyBox = Locked<Int?>(nil)
     private let currentScreenBox = Locked<String?>(nil)
     private let collectionEnabledBox = Locked(true)
     private let destroyedBox = Locked(false)
@@ -39,6 +40,7 @@ public final class ObserveTracker: Sendable {
                 ?? HttpTransport(url: options.eventsURL!, logger: logger),  // validated at initialize
             configBox: configBox,
             sessionIdBox: sessionIdBox,
+            dataPolicyBox: dataPolicyBox,
             signal: { queueSignal in
                 continuation.yield { core in core.handleQueueSignal(queueSignal) }
             })
@@ -60,6 +62,7 @@ public final class ObserveTracker: Sendable {
             await previousShutdown?.value
             core.start()
         }
+        if let code = options.dataPolicy { setDataPolicy(code) }
 
         // Registered synchronously (NotificationCenter registration is thread-safe and cheap)
         // so destroy() can always unregister; a deferred registration would race it.
@@ -359,6 +362,31 @@ public final class ObserveTracker: Sendable {
     public func setScreen(_ screenName: String?) {
         currentScreenBox.value = screenName
     }
+
+    // MARK: - Data policy
+
+    /// Select the project-scoped data policy (0...255, 0 = project default) configured in
+    /// Corbado, e.g. `setDataPolicy(1)` once the user agreed to extended processing. Once set,
+    /// the code is sent with every batch, persisted per project and restored on the next launch;
+    /// it is only ever overwritten, never cleared. Invalid codes are ignored.
+    public func setDataPolicy(_ code: Int) {
+        if destroyedBox.value { return }
+        guard (0...255).contains(code) else {
+            logger.debug("Ignoring invalid data policy code \(code)")
+            return
+        }
+        let changed = dataPolicyBox.withLock { current in
+            defer { current = code }
+            return current != code
+        }
+        if changed { post { core in core.persistDataPolicy() } }
+    }
+
+    /// Current data policy code; nil while none was ever set. A code persisted by an earlier
+    /// launch is visible only once initialization completed on the SDK actor, so pass the
+    /// intended code via `ObserveOptions.dataPolicy` or `setDataPolicy` instead of branching on
+    /// this right after init.
+    public func getDataPolicy() -> Int? { dataPolicyBox.value }
 
     /// Flush pending events now (e.g. before an expected process kill).
     public func flush() {

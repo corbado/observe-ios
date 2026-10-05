@@ -38,6 +38,15 @@ import Testing
         #expect(event["tags"] == nil)
     }
 
+    @Test func batchMetaCarriesExplicitZeroDataPolicy() throws {
+        let batch = WireEventBatch(
+            sessionID: "session", events: [], sdk: WireSdkInfo(name: "observe-ios", version: "0.1.0"),
+            meta: WireBatchMeta(sent: 1, transport: "native", dataPolicy: 0))
+        let root = try #require(
+            try JSONSerialization.jsonObject(with: Data(WireJson.encodeToString(batch).utf8)) as? [String: Any])
+        #expect((root["meta"] as? [String: Any])?["dataPolicy"] as? Int == 0)
+    }
+
     @Test func deviceInfoCarriesAppTypeAndNativeSource() throws {
         let info = WireDeviceInfo(
             clientEnvHandle: "handle",

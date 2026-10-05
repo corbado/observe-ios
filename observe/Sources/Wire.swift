@@ -40,6 +40,8 @@ struct WireBatchMeta: Codable {
     var retryCount: Int?
     /// Version of the SDK reliability config this batch was captured under.
     var configVersion: String?
+    /// Project-scoped data policy code (0...255); omitted while none has ever been set.
+    var dataPolicy: Int?
 }
 
 struct WireEvent: Codable {
