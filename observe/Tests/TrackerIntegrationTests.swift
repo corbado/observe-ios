@@ -88,7 +88,8 @@ private actor GatedTransport: Transporting {
         let core = TrackerCore(
             options: ObserveOptions(projectId: "pro-test", apiBaseUrl: "https://example.invalid"),
             logger: ObserveLogger(debug: false), transport: transport,
-            configBox: Locked(config), sessionIdBox: Locked("session"), signal: { _ in })
+            configBox: Locked(config), sessionIdBox: Locked("session"), dataPolicyBox: Locked(nil),
+            signal: { _ in })
         await core.reportTelemetry(level: "info", message: "background test")
         await core.flush(.manual)
         for _ in 0..<200 {
@@ -369,6 +370,48 @@ private actor GatedTransport: Transporting {
         let events = await drain(tracker, transport, eventCount: 1)
         #expect(events.map(\.name) == ["flow_started"])
         #expect(events[0].data.objectValue?["flowName"]?.stringValue == "kept")
+    }
+
+    @Test func dataPolicyRidesEveryBatchOnceSet() async {
+        let (tracker, transport) = await makeTracker()
+        tracker.trackCustom("unset")
+        _ = await drain(tracker, transport, eventCount: 1)
+        #expect(transport.batches.value.allSatisfy { $0.meta?.dataPolicy == nil })
+
+        tracker.setDataPolicy(0)
+        tracker.setDataPolicy(256)
+        tracker.setDataPolicy(-1)
+        #expect(tracker.getDataPolicy() == 0)
+        tracker.trackCustom("set")
+        _ = await drain(tracker, transport, eventCount: 2)
+        let batch = transport.batches.value.first { $0.events.contains { $0.name == "set" } }
+        #expect(batch?.meta?.dataPolicy == 0)
+    }
+
+    @Test func dataPolicyPersistsPerProjectAcrossRelaunch() async {
+        /// Relaunches (makeTracker terminates the previous tracker first) and returns the code
+        /// stamped on the batch carrying a fresh event.
+        func relaunch(_ projectId: String, dataPolicy: Int?) async -> (ObserveTracker, Int??) {
+            let (tracker, transport) = await makeTracker(
+                options: ObserveOptions(
+                    projectId: projectId, apiBaseUrl: "https://example.invalid", dataPolicy: dataPolicy))
+            tracker.trackCustom("probe")
+            _ = await drain(tracker, transport, eventCount: 1)
+            let batch = transport.batches.value.first { $0.events.contains { $0.name == "probe" } }
+            return (tracker, batch.map(\.meta?.dataPolicy))
+        }
+
+        _ = await relaunch("pro-test", dataPolicy: 2)
+        let (restored, restoredCode) = await relaunch("pro-test", dataPolicy: nil)
+        #expect(restoredCode == .some(2))
+        #expect(restored.getDataPolicy() == 2)
+
+        _ = await relaunch("pro-test", dataPolicy: 3)
+        #expect(await relaunch("pro-test", dataPolicy: nil).1 == .some(3))
+
+        let (other, otherCode) = await relaunch("pro-other", dataPolicy: nil)
+        #expect(otherCode == .some(nil))
+        #expect(other.getDataPolicy() == nil)
     }
 
     @Test func eventsShareOneSessionAndOrderBySeq() async {

@@ -23,7 +23,7 @@ private final class RejectingTransport: Transporting {
         let lows = LowBuffer(enabled: { true }, currentSessionId: { "session" })
         let outbox = Outbox(directory: { directory }, logger: ObserveLogger(debug: false))
         let queue = EventQueue(
-            transport: transport, outbox: outbox, config: { .default },
+            transport: transport, outbox: outbox, config: { .default }, dataPolicy: { nil },
             sdkInfo: WireSdkInfo(name: "observe-ios", version: "test"),
             telemetryBuffer: telemetry, lowBuffer: lows, logger: ObserveLogger(debug: false),
             onConfigReceived: { _ in }, signal: { _ in })

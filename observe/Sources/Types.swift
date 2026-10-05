@@ -20,6 +20,10 @@ public struct ObserveOptions: Sendable {
     /// moment). Host apps that want full control can disable this and call
     /// `ObserveTracker.flush` themselves; the server config can also switch it off remotely.
     public var flushOnBackground: Bool
+    /// Data policy code to seed at init: a project-scoped selector (0...255) of a policy configured
+    /// in Corbado, 0 being the project default. Overlays the persisted code; see
+    /// `ObserveTracker.setDataPolicy`.
+    public var dataPolicy: Int?
 
     public init(
         projectId: String,
@@ -28,7 +32,8 @@ public struct ObserveOptions: Sendable {
         debug: Bool = false,
         defaultTags: [String: String] = [:],
         applicationId: String? = nil,
-        flushOnBackground: Bool = true
+        flushOnBackground: Bool = true,
+        dataPolicy: Int? = nil
     ) {
         self.projectId = projectId
         self.apiBaseUrl = apiBaseUrl
@@ -37,6 +42,7 @@ public struct ObserveOptions: Sendable {
         self.defaultTags = defaultTags
         self.applicationId = applicationId
         self.flushOnBackground = flushOnBackground
+        self.dataPolicy = dataPolicy
     }
 }
 

@@ -41,6 +41,15 @@ final class ObservePrefs {
         set { defaults.set(newValue, forKey: Self.keySdkConfig) }
     }
 
+    /// Keyed by project: codes select policies of one project and mean nothing in another.
+    func dataPolicy(projectId: String) -> Int? {
+        defaults.object(forKey: Self.keyDataPolicy + projectId) as? Int
+    }
+
+    func setDataPolicy(_ code: Int, projectId: String) {
+        defaults.set(code, forKey: Self.keyDataPolicy + projectId)
+    }
+
     func updateSession(id: String, lastActivityAt: Int64) {
         defaults.set(id, forKey: Self.keySessionId)
         defaults.set(Double(lastActivityAt), forKey: Self.keySessionLastActivity)
@@ -51,4 +60,5 @@ final class ObservePrefs {
     private static let keyClientEnvHandle = "cbo_client_env_handle"
     private static let keyClientEnvHandleTs = "cbo_client_env_handle_ts"
     private static let keySdkConfig = "cbo_sdk_config"
+    private static let keyDataPolicy = "cbo_data_policy_"
 }
