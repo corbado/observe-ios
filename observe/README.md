@@ -127,7 +127,8 @@ It reads only these known `userInfo` keys; URLs, file paths, binary data and arb
 excluded. For extra application-specific fields, supply `.value(.object([...]))` with `JSONValue`
 scalars/containers. No reflection of Swift associated values or arbitrary object descriptions occurs.
 Messages and explicit projections may contain personal data: only supply data suitable for
-transmission. The privacy manifest declares diagnostics as linked because they accompany auth events.
+transmission. Raw errors are only sent when the integration passes them and the effective
+`rawErrors` policy is true.
 
 Swift/NSError does not retain a throw-site stack. If your integration already captured one:
 
