@@ -187,6 +187,36 @@ private actor GatedTransport: Transporting {
         #expect(UserDefaults(suiteName: "corbado_observe")?.string(forKey: "cbo_sdk_config") == cached)
     }
 
+    @Test func fetchedInactivityWindowGovernsForegroundRotationInSameProcess() async {
+        let network = GatedConfigTransport()
+        let configBox = Locked(SdkConfig.default)
+        let sessionIdBox = Locked<String?>(nil)
+        let core = TrackerCore(
+            options: ObserveOptions(projectId: "pro-test", apiBaseUrl: "https://example.invalid"),
+            logger: ObserveLogger(debug: false), transport: CapturingTransport(), configTransport: network,
+            configBox: configBox, sessionIdBox: sessionIdBox, dataPolicyBox: Locked(nil),
+            signal: { _ in })
+        await core.start()
+        let session = sessionIdBox.value
+        await eventually { await network.requests == 1 }
+        await network.release(
+            ConfigResponse(statusCode: 200, body: #"{"version":"live","sessionInactivityMs":28800000}"#))
+        await eventually { configBox.value.sessionInactivityMs == 28_800_000 }
+
+        func idle(minutes: Int64) {
+            let lastActivity = Int64(Date().timeIntervalSince1970 * 1000) - minutes * 60_000
+            UserDefaults(suiteName: "corbado_observe")?.set(Double(lastActivity), forKey: "cbo_session_activity")
+        }
+        // Past the 30-minute built-in default, within the fetched window.
+        idle(minutes: 31)
+        await core.checkRotation()
+        #expect(sessionIdBox.value == session)
+        idle(minutes: 8 * 60 + 1)
+        await core.checkRotation()
+        #expect(sessionIdBox.value != session)
+        await core.destroyCore()
+    }
+
     @Test func overlappingBackgroundFlushesFinishAfterDelivery() async {
         let transport = GatedTransport()
         var config = SdkConfig.default
