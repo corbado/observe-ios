@@ -110,7 +110,7 @@ actor TrackerCore {
 
         queue.start()
         if let configManager {
-            Task {
+            Task { [weak self] in
                 await configManager.start { [weak self] config, body in
                     await self?.applyConfig(config, body: body)
                 }
