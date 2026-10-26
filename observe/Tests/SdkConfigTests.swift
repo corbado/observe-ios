@@ -90,6 +90,15 @@ import Testing
         #expect(SdkConfigOverrides().resolve(over: nil).retryBaseDelayMs == 0)
     }
 
+    @Test func rawErrorsOverrideWinsOverServerPolicy() throws {
+        let enabled = try #require(SdkConfig.parse(#"{"version":"server","rawErrors":true}"#))
+        let disabled = try #require(SdkConfig.parse(#"{"version":"server","rawErrors":false}"#))
+        #expect(!SdkConfigOverrides(rawErrors: false).resolve(over: enabled).rawErrors)
+        #expect(SdkConfigOverrides(rawErrors: true).resolve(over: disabled).rawErrors)
+        #expect(SdkConfigOverrides().resolve(over: enabled).rawErrors)
+        #expect(!SdkConfigOverrides().resolve(over: nil).rawErrors)
+    }
+
     @Test func configEndpointUsesProxyPathAndNativePolicySelector() {
         let options = ObserveOptions(
             projectId: "pro-test", apiBaseUrl: "https://proxy.example", apiConfigPath: "/auth/config")

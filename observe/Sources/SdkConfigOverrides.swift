@@ -12,6 +12,7 @@ public struct SdkConfigOverrides: Sendable {
     public var deviceInfoCollectorTimeoutMs: Int64?
     public var flushOnBackground: Bool?
     public var lows: Bool?
+    public var rawErrors: Bool?
     public var retry: RetryConfigOverrides?
 
     public init(
@@ -24,6 +25,7 @@ public struct SdkConfigOverrides: Sendable {
         deviceInfoCollectorTimeoutMs: Int64? = nil,
         flushOnBackground: Bool? = nil,
         lows: Bool? = nil,
+        rawErrors: Bool? = nil,
         retry: RetryConfigOverrides? = nil
     ) {
         self.version = version
@@ -35,6 +37,7 @@ public struct SdkConfigOverrides: Sendable {
         self.deviceInfoCollectorTimeoutMs = deviceInfoCollectorTimeoutMs
         self.flushOnBackground = flushOnBackground
         self.lows = lows
+        self.rawErrors = rawErrors
         self.retry = retry
     }
 
@@ -48,6 +51,7 @@ public struct SdkConfigOverrides: Sendable {
             && deviceInfoCollectorTimeoutMs != nil
             && flushOnBackground != nil
             && lows != nil
+            && rawErrors != nil
             && retry?.maxAttempts != nil && retry?.baseDelayMs != nil && retry?.maxDelayMs != nil
     }
 
@@ -62,6 +66,7 @@ public struct SdkConfigOverrides: Sendable {
         result.deviceInfoCollectorTimeoutMs = deviceInfoCollectorTimeoutMs ?? result.deviceInfoCollectorTimeoutMs
         result.flushOnBackground = flushOnBackground ?? result.flushOnBackground
         result.lows = lows ?? result.lows
+        result.rawErrors = rawErrors ?? result.rawErrors
         result.retryMaxAttempts = retry?.maxAttempts ?? result.retryMaxAttempts
         result.retryBaseDelayMs = retry?.baseDelayMs ?? result.retryBaseDelayMs
         result.retryMaxDelayMs = retry?.maxDelayMs ?? result.retryMaxDelayMs

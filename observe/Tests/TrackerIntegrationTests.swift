@@ -43,7 +43,7 @@ private actor GatedTransport: Transporting {
 @Suite(.serialized) struct TrackerIntegrationTests {
     /// The previous test's tracker: drained (destroy + pump termination) before the next test
     /// touches shared state, so a finished test can't write prefs/outbox underneath it.
-    private static let lastTracker = Locked<ObserveTracker?>(nil)
+    static let lastTracker = Locked<ObserveTracker?>(nil)
 
     init() async {
         await Self.finishLastTracker()
@@ -70,7 +70,7 @@ private actor GatedTransport: Transporting {
         return tracker
     }
 
-    private static func finishLastTracker() async {
+    static func finishLastTracker() async {
         if let previous = Self.lastTracker.withLock({ stored -> ObserveTracker? in
             let value = stored
             stored = nil
@@ -172,7 +172,7 @@ private actor GatedTransport: Transporting {
         let overrides = SdkConfigOverrides(
             version: "local", flushIntervalMs: 2_000, sessionInactivityMs: 1_800_000,
             telemetry: true, flushOnTelemetry: false, flushOnFlowTypeFinished: [],
-            deviceInfoCollectorTimeoutMs: 1_000, flushOnBackground: true, lows: true,
+            deviceInfoCollectorTimeoutMs: 1_000, flushOnBackground: true, lows: true, rawErrors: false,
             retry: RetryConfigOverrides(maxAttempts: 1, baseDelayMs: 0, maxDelayMs: 0))
         let tracker = ObserveTracker(
             options: ObserveOptions(projectId: "pro-test", apiBaseUrl: "https://example.invalid", sdkConfig: overrides),
