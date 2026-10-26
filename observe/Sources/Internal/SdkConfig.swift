@@ -13,7 +13,7 @@ struct SdkConfig: Sendable {
     /// How often the queue flushes, ms. The default (2s) is battery-frugal.
     var flushIntervalMs: Int64 = 2_000
     /// Inactivity window after which the session id rotates, ms.
-    var sessionInactivityMs: Int64 = 30 * 60 * 1_000
+    var sessionInactivityMs: Int64 = 8 * 60 * 60 * 1_000
     /// Master switch for the diagnostic telemetry stream.
     var telemetry: Bool = true
     /// When true, enqueuing a telemetry entry triggers an immediate flush.
