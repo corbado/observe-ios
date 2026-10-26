@@ -18,10 +18,16 @@ import Foundation
 ///   completion. It must be denied everywhere it appears (the response's clientDataJSON AND
 ///   the options), or the two copies reconstruct each other.
 ///
+/// User identifiers are omitted unless the integration projects them: relying parties often put
+/// an email there. Covers creation-options `user.id` (plus `user.name`/`user.displayName`) and
+/// response `userHandle`.
+///
 /// Keyed by the wire field names the backend classifier uses; recurses so nested `stepData` (and
 /// any future nesting) is covered. Anything that fails to parse is redacted wholesale rather than
 /// passed through: a sanitizer must never leak on its error path.
-enum WebAuthnSanitizer {
+struct WebAuthnSanitizer: Sendable {
+    var userIdProjector: WebAuthnIdentifierProjector?
+
     private static let redacted = "[redacted]"
 
     /// Valid base64url, non-empty. Passes the backend's `len(challenge) > 0` presence gate.
@@ -33,11 +39,11 @@ enum WebAuthnSanitizer {
         return base64Url(Data(json.utf8))
     }()
 
-    static func sanitize(_ object: [String: JSONValue]) -> [String: JSONValue] {
+    func sanitize(_ object: [String: JSONValue]) -> [String: JSONValue] {
         object.reduce(into: [:]) { result, pair in result[pair.key] = entry(pair.key, pair.value) }
     }
 
-    private static func entry(_ key: String, _ value: JSONValue) -> JSONValue {
+    private func entry(_ key: String, _ value: JSONValue) -> JSONValue {
         switch value {
         case .object(let nested):
             return .object(sanitize(nested))
@@ -50,45 +56,68 @@ enum WebAuthnSanitizer {
         }
     }
 
-    private static func string(_ key: String, _ raw: String) -> JSONValue {
+    private func string(_ key: String, _ raw: String) -> JSONValue {
         switch key {
-        case "assertionResponse": .string(stripSignature(raw))
-        case "attestationResponse": .string(neutralizeEnrollmentChallenge(raw))
-        case "attestationOptions": .string(redactOptionsChallenge(raw))
+        case "assertionResponse": .string(sanitizeAssertion(raw))
+        case "attestationResponse": .string(sanitizeAttestation(raw))
+        case "attestationOptions": .string(sanitizeCreationOptions(raw))
         default: .string(raw)
         }
     }
 
-    /// Remove `response.signature` from a login assertion.
-    private static func stripSignature(_ raw: String) -> String {
-        transform(raw) { root in
+    /// Remove `response.signature` from a login assertion; project `response.userHandle`.
+    private func sanitizeAssertion(_ raw: String) -> String {
+        Self.transform(raw) { root in
             guard case .object(var response)? = root["response"] else { return root }
             response["signature"] = nil
             var result = root
-            result["response"] = .object(response)
+            result["response"] = .object(projectUserId(response, key: "userHandle"))
             return result
         }
     }
 
-    /// Replace the enrollment response's clientDataJSON (which carries the challenge) with a stub.
-    private static func neutralizeEnrollmentChallenge(_ raw: String) -> String {
-        transform(raw) { root in
+    /// Replace the clientDataJSON (which carries the challenge) with a stub; project `response.userHandle`.
+    private func sanitizeAttestation(_ raw: String) -> String {
+        Self.transform(raw) { root in
             guard case .object(var response)? = root["response"] else { return root }
-            response["clientDataJSON"] = .string(neutralClientDataJSON)
+            response["clientDataJSON"] = .string(Self.neutralClientDataJSON)
             var result = root
-            result["response"] = .object(response)
+            result["response"] = .object(projectUserId(response, key: "userHandle"))
             return result
         }
     }
 
-    /// Replace the top-level `challenge` in attestation options with a non-empty placeholder.
-    private static func redactOptionsChallenge(_ raw: String) -> String {
-        transform(raw) { root in
-            guard root["challenge"] != nil else { return root }
+    /// Replace the top-level `challenge` with a non-empty placeholder; drop user name fields, project `user.id`.
+    private func sanitizeCreationOptions(_ raw: String) -> String {
+        Self.transform(raw) { root in
             var result = root
-            result["challenge"] = .string(redactedChallenge)
+            if root["challenge"] != nil { result["challenge"] = .string(Self.redactedChallenge) }
+            if case .object(var user)? = root["user"] {
+                user["name"] = nil
+                user["displayName"] = nil
+                result["user"] = .object(projectUserId(user, key: "id"))
+            }
             return result
         }
+    }
+
+    /// JSON null stays null; strings go through the projector; everything else is omitted.
+    private func projectUserId(_ object: [String: JSONValue], key: String) -> [String: JSONValue] {
+        guard let value = object[key] else { return object }
+        var result = object
+        switch value {
+        case .null:
+            break
+        case .string(let identifier):
+            switch (try? userIdProjector?(identifier)) ?? .omit {
+            case .value(let projected): result[key] = .string(projected)
+            case .null: result[key] = .null
+            case .omit: result[key] = nil
+            }
+        default:
+            result[key] = nil
+        }
+        return result
     }
 
     private static func transform(

@@ -8,6 +8,7 @@ actor TrackerCore {
     private let transport: any Transporting
     private let options: ObserveOptions
     private let prefs = ObservePrefs()
+    private let webAuthnSanitizer: WebAuthnSanitizer
 
     /// Live policy mirror, read synchronously by the lifecycle watcher and the buffers' gate
     /// closures without hopping onto the actor.
@@ -44,6 +45,7 @@ actor TrackerCore {
     ) {
         self.transport = transport
         self.options = options
+        webAuthnSanitizer = WebAuthnSanitizer(userIdProjector: options.identifierProjectors.userId)
         self.logger = logger
         self.configBox = configBox
         self.sessionIdBox = sessionIdBox
@@ -167,9 +169,9 @@ actor TrackerCore {
             seq: session.nextSeq(),
             type: type,
             name: name,
-            // Redact WebAuthn completion material (login signature, enrollment challenge)
-            // before it can enter the event, outbox, or transport.
-            data: .object(WebAuthnSanitizer.sanitize(data)),
+            // Redact WebAuthn completion material and user identifiers before they can enter
+            // the event, outbox, or transport.
+            data: .object(webAuthnSanitizer.sanitize(data)),
             user: user.map {
                 WireUserReference(
                     userId: $0.userId,

@@ -65,6 +65,25 @@ Once set, the code is sent with every batch and persisted per project across lau
 `resetSession` and `destroy`; it is only ever overwritten, never cleared. The init option
 overlays the persisted code; invalid codes are ignored. Nothing is sent until a code is set.
 
+## WebAuthn payloads
+
+WebAuthn results passed to the passkey operations (typed `AuthenticationServices` results or
+JSON strings) are sanitized before they are stored or sent: login signatures and enrollment
+challenges are redacted, and user identifiers (creation-options `user.id`, `user.name`,
+`user.displayName`, response `userHandle`) are omitted. To send a projected user id instead
+(e.g. a hash), pass a projector:
+
+```swift
+ObserveOptions(
+    projectId: "pro-...", apiBaseUrl: "https://api.cloud.corbado.io",
+    identifierProjectors: WebAuthnIdentifierProjectors { userId in .value(hash(userId)) })
+```
+
+The projector receives the base64url value (for JSON strings, the value as supplied) and runs on
+the SDK's background actor. Return `.value` to replace it, `.null` for an explicit null or
+`.omit` to leave it out; a thrown error omits it. It affects telemetry only, never the
+credentials your app hands to `AuthenticationServices`.
+
 See [`examples/observe`](../examples/observe/) for a runnable app and
 [limitations](../docs/LIMITATIONS.md) for known platform gaps.
 
