@@ -28,6 +28,9 @@ public struct ObserveOptions: Sendable {
     /// in Corbado, 0 being the project default. Overlays the persisted code; see
     /// `ObserveTracker.setDataPolicy`.
     public var dataPolicy: Int?
+    /// Optional projection of WebAuthn user identifiers; without a projector they are omitted
+    /// from events.
+    public var identifierProjectors: WebAuthnIdentifierProjectors
 
     public init(
         projectId: String,
@@ -39,7 +42,8 @@ public struct ObserveOptions: Sendable {
         flushOnBackground: Bool = true,
         dataPolicy: Int? = nil,
         apiConfigPath: String = "/v1/observe/config",
-        sdkConfig: SdkConfigOverrides? = nil
+        sdkConfig: SdkConfigOverrides? = nil,
+        identifierProjectors: WebAuthnIdentifierProjectors = WebAuthnIdentifierProjectors()
     ) {
         self.projectId = projectId
         self.apiBaseUrl = apiBaseUrl
@@ -51,6 +55,34 @@ public struct ObserveOptions: Sendable {
         self.applicationId = applicationId
         self.flushOnBackground = flushOnBackground
         self.dataPolicy = dataPolicy
+        self.identifierProjectors = identifierProjectors
+    }
+}
+
+/// Outcome of a WebAuthn identifier projection.
+public enum WebAuthnIdentifierProjection: Sendable, Equatable {
+    /// Send this value in place of the identifier.
+    case value(String)
+    /// Send an explicit JSON null.
+    case null
+    /// Leave the identifier out.
+    case omit
+}
+
+/// Projects a WebAuthn identifier for telemetry. Receives the base64url value from the WebAuthn
+/// JSON (JSON-string payloads: the value as supplied). A thrown error omits the identifier. Runs
+/// on the SDK's background actor; keep it fast and deterministic.
+public typealias WebAuthnIdentifierProjector = @Sendable (String) throws -> WebAuthnIdentifierProjection
+
+/// WebAuthn identifier projection for event payloads. Affects telemetry only; the credentials
+/// your app passes to `AuthenticationServices` stay unchanged.
+public struct WebAuthnIdentifierProjectors: Sendable {
+    /// Projects creation-options `user.id` and response `userHandle`. Without it both are omitted.
+    /// A JSON null stays null without calling it.
+    public var userId: WebAuthnIdentifierProjector?
+
+    public init(userId: WebAuthnIdentifierProjector? = nil) {
+        self.userId = userId
     }
 }
 
