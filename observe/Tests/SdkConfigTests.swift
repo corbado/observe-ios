@@ -6,7 +6,7 @@ import Testing
     @Test func defaultsAreConservative() {
         let config = SdkConfig.default
         #expect(config.flushIntervalMs == 2_000)
-        #expect(config.sessionInactivityMs == 30 * 60 * 1_000)
+        #expect(config.sessionInactivityMs == 8 * 60 * 60 * 1_000)
         #expect(config.telemetry)
         #expect(!config.flushOnTelemetry)
         #expect(config.flushOnBackground)

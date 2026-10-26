@@ -200,18 +200,18 @@ private actor GatedTransport: Transporting {
         let session = sessionIdBox.value
         await eventually { await network.requests == 1 }
         await network.release(
-            ConfigResponse(statusCode: 200, body: #"{"version":"live","sessionInactivityMs":28800000}"#))
-        await eventually { configBox.value.sessionInactivityMs == 28_800_000 }
+            ConfigResponse(statusCode: 200, body: #"{"version":"live","sessionInactivityMs":1800000}"#))
+        await eventually { configBox.value.sessionInactivityMs == 1_800_000 }
 
         func idle(minutes: Int64) {
             let lastActivity = Int64(Date().timeIntervalSince1970 * 1000) - minutes * 60_000
             UserDefaults(suiteName: "corbado_observe")?.set(Double(lastActivity), forKey: "cbo_session_activity")
         }
-        // Past the 30-minute built-in default, within the fetched window.
-        idle(minutes: 31)
+        idle(minutes: 29)
         await core.checkRotation()
         #expect(sessionIdBox.value == session)
-        idle(minutes: 8 * 60 + 1)
+        // Past the fetched window, within the 8-hour built-in default.
+        idle(minutes: 31)
         await core.checkRotation()
         #expect(sessionIdBox.value != session)
         await core.destroyCore()
