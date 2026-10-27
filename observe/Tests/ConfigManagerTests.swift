@@ -215,6 +215,9 @@ private struct Harness {
             ("max-age=600", "500", 300_000),
             ("max-age=0", nil, 300_000),
             ("max-age=172800", nil, 86_400_000),
+            ("max-age=172800", "86400", 86_400_000),
+            ("max-age=99999999999999999999", nil, 86_400_000),
+            ("max-age=600", "99999999999999999999", 300_000),
             ("max-age=-9223372036854775808", "9223372036854775807", 300_000),
         ] as [(String?, String?, Int64)])  // swiftlint:disable:this large_tuple
     func ttlFromMaxAgeMinusAgeClampedOrDefault(cacheControl: String?, age: String?, ttl: Int64) {

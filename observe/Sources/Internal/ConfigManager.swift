@@ -197,13 +197,21 @@ actor ConfigManager {
             let parts = directive.split(separator: "=", maxSplits: 1)
             guard parts.count == 2, parts[0].trimmingCharacters(in: .whitespaces).lowercased() == "max-age"
             else { return nil }
-            return Int64(parts[1].trimmingCharacters(in: CharacterSet(charactersIn: "\" ")))
+            return deltaSeconds(parts[1])
         }.first
         guard let maxAge else { return defaultTtlMs }
-        let ageSeconds = age.flatMap { Int64($0.trimmingCharacters(in: .whitespaces)) } ?? 0
-        // Clamped before subtracting so header values cannot overflow.
-        let remaining = min(max(maxAge, 0), maxTtlSeconds) - min(max(ageSeconds, 0), maxTtlSeconds)
+        // Both non-negative, so the difference cannot overflow.
+        let remaining = maxAge - (age.flatMap(deltaSeconds) ?? 0)
         return min(max(remaining, minTtlSeconds), maxTtlSeconds) * 1000
+    }
+
+    /// Non-negative seconds; integers beyond Int64 saturate.
+    private static func deltaSeconds(_ text: some StringProtocol) -> Int64? {
+        let digits = text.trimmingCharacters(in: CharacterSet(charactersIn: "\" "))
+        if let value = Int64(digits) { return max(value, 0) }
+        let unsigned = digits.hasPrefix("-") ? digits.dropFirst() : Substring(digits)
+        guard !unsigned.isEmpty, unsigned.allSatisfy({ ("0"..."9").contains($0) }) else { return nil }
+        return digits.hasPrefix("-") ? 0 : .max
     }
 
     func stop() {
