@@ -71,12 +71,14 @@ extension TrackerIntegrationTests {
         await eventually { transport.events.count == 1 }
         let enabled = #"{"version":"enabled","rawErrors":true}"#
         await enabling.release(ConfigResponse(statusCode: 200, body: enabled))
-        await eventually { UserDefaults(suiteName: "corbado_observe")?.string(forKey: "cbo_sdk_config") == enabled }
+        await eventually { ObservePrefs().sdkConfigCache?.body == enabled }
         first.passwordLoginOperation().customStep("after_enable").errorTyped([:], options: stepOptions)
         first.destroy()
         await first.awaitTermination()
         #expect(diagnostic.reads.value == 1)
 
+        // Expired: the next start applies the cached policy and refreshes it.
+        ObservePrefs().sdkConfigCache?.freshness = ConfigFreshness(fetchedAt: 1, expiresAt: 2)
         let disabling = GatedConfigTransport()
         let second = ObserveTracker(options: options, transport: transport, configTransport: disabling)
         Self.lastTracker.value = second
@@ -87,7 +89,7 @@ extension TrackerIntegrationTests {
         await eventually { transport.events.count == 3 }
         let disabled = #"{"version":"disabled","rawErrors":false}"#
         await disabling.release(ConfigResponse(statusCode: 200, body: disabled))
-        await eventually { UserDefaults(suiteName: "corbado_observe")?.string(forKey: "cbo_sdk_config") == disabled }
+        await eventually { ObservePrefs().sdkConfigCache?.body == disabled }
         second.passwordLoginOperation().customStep("after_disable").errorTyped([:], options: stepOptions)
         second.destroy()
         await second.awaitTermination()
@@ -116,7 +118,7 @@ extension TrackerIntegrationTests {
         await eventually { transport.events.count == 1 }
         let live = #"{"version":"live","rawErrors":true}"#
         await network.release(ConfigResponse(statusCode: 200, body: live))
-        await eventually { UserDefaults(suiteName: "corbado_observe")?.string(forKey: "cbo_sdk_config") == live }
+        await eventually { ObservePrefs().sdkConfigCache?.body == live }
         tracker.passwordLoginOperation().customStep("live_policy").errorTyped([:], options: stepOptions)
         tracker.destroy()
         await tracker.awaitTermination()

@@ -12,7 +12,8 @@ private class ConfigURLProtocol: URLProtocol, @unchecked Sendable {
     override func startLoading() {
         Self.requests.withLock { $0.append(request) }
         let response = HTTPURLResponse(
-            url: request.url!, statusCode: 503, httpVersion: "HTTP/1.1", headerFields: ["rEtRy-AfTeR": ""])!
+            url: request.url!, statusCode: 503, httpVersion: "HTTP/1.1",
+            headerFields: ["rEtRy-AfTeR": "", "cache-control": "max-age=600", "age": "12"])!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Data(#"{"version":"test"}"#.utf8))
         client?.urlProtocolDidFinishLoading(self)
@@ -22,24 +23,30 @@ private class ConfigURLProtocol: URLProtocol, @unchecked Sendable {
 }
 
 @Suite struct ConfigTransportTests {
-    @Test func configGetUsesNoCacheBoundedTimeoutAndRecognizesRetryAfter() async throws {
+    @Test func configGetIsConditionalBypassesHttpCacheAndReadsResponseHeaders() async throws {
         let url = try #require(URL(string: "https://proxy.example/config/pro-test?sdkName=observe-ios"))
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.protocolClasses = [ConfigURLProtocol.self]
-        let transport = HttpConfigTransport(url: url, configuration: configuration)
-        let response = await transport.fetch()
-        transport.shutdown()
-        let request = try #require(ConfigURLProtocol.requests.value.last)
-        #expect(request.url == url)
-        #expect(request.httpMethod == "GET")
-        #expect(request.httpBody == nil)
-        #expect(request.value(forHTTPHeaderField: "Cache-Control") == "no-store")
-        #expect(request.cachePolicy == .reloadIgnoringLocalCacheData)
-        #expect(request.timeoutInterval == 10)
-        #expect(configuration.timeoutIntervalForResource == 10)
-        #expect(response.statusCode == 503)
-        #expect(response.hasRetryAfter)
-        #expect(!response.retryable)
+        // Sequential: the protocol records requests globally.
+        for entityTag in [nil, #""v1""#] {
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.protocolClasses = [ConfigURLProtocol.self]
+            let transport = HttpConfigTransport(url: url, configuration: configuration)
+            let response = await transport.fetch(ifNoneMatch: entityTag)
+            transport.shutdown()
+            let request = try #require(ConfigURLProtocol.requests.value.last)
+            #expect(request.url == url)
+            #expect(request.httpMethod == "GET")
+            #expect(request.httpBody == nil)
+            #expect(request.value(forHTTPHeaderField: "If-None-Match") == entityTag)
+            #expect(request.value(forHTTPHeaderField: "Cache-Control") == nil)
+            #expect(request.cachePolicy == .reloadIgnoringLocalCacheData)
+            #expect(request.timeoutInterval == 10)
+            #expect(configuration.timeoutIntervalForResource == 10)
+            #expect(response.statusCode == 503)
+            #expect(response.hasRetryAfter)
+            #expect(!response.retryable)
+            #expect(response.cacheControl == "max-age=600")
+            #expect(response.age == "12")
+        }
     }
 }
 
@@ -68,7 +75,7 @@ extension ConfigTransportTests {
         configuration.protocolClasses = [GatedConfigURLProtocol.self]
         let transport = HttpConfigTransport(url: url, configuration: configuration)
         let startedAt = DispatchTime.now().uptimeNanoseconds
-        let response = await transport.fetch()
+        let response = await transport.fetch(ifNoneMatch: nil)
         let elapsed = DispatchTime.now().uptimeNanoseconds - startedAt
         // Lower bound only: CI simulators fire URLSession timers late; the time limit catches hangs.
         #expect(elapsed >= 9_000_000_000)
@@ -84,12 +91,12 @@ extension ConfigTransportTests {
             let configuration = URLSessionConfiguration.ephemeral
             configuration.protocolClasses = [GatedConfigURLProtocol.self]
             let transport = HttpConfigTransport(url: url, configuration: configuration)
-            let request = Task { await transport.fetch() }
+            let request = Task { await transport.fetch(ifNoneMatch: nil) }
             transport.shutdown()
             #expect(await request.value.statusCode == nil)
             // A request admitted after shutdown must return locally, without asking URLSession
             // to create a task (which raises an Objective-C exception on an invalidated session).
-            #expect(await transport.fetch().statusCode == nil)
+            #expect(await transport.fetch(ifNoneMatch: nil).statusCode == nil)
         }
     }
 

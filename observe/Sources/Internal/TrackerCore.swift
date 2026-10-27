@@ -23,6 +23,7 @@ actor TrackerCore {
     private let outbox: Outbox
     private let queue: EventQueue
     private let configManager: ConfigManager?
+    private var configURL: String { options.configURL?.absoluteString ?? "" }
     private var stopped = false
     private var deliveryTask: Task<Void, Never>?
     private var deliveryCompletions: [@Sendable () -> Void] = []
@@ -85,7 +86,9 @@ actor TrackerCore {
 
     func start() {
         // Resolve local policy before session bootstrap; remote I/O never holds the mailbox.
-        let cached = configManager == nil ? nil : prefs.sdkConfigJson.flatMap(SdkConfig.parse)
+        let record = configManager == nil ? nil : prefs.sdkConfigCache
+        let legacy = configManager == nil || record != nil ? nil : prefs.legacySdkConfigJson
+        let cached = (record?.body ?? legacy).flatMap(SdkConfig.parse)
         configBox.value = (options.sdkConfig ?? SdkConfigOverrides()).resolve(over: cached)
 
         session.start()
@@ -112,17 +115,30 @@ actor TrackerCore {
 
         queue.start()
         if let configManager {
+            let cachedVersion = cached?.version
+            // Freshness from another endpoint (or a legacy policy without any) counts as expired.
+            let freshness = record.flatMap { $0.endpoint == configURL ? $0.freshness : nil }
             Task { [weak self] in
-                await configManager.start { [weak self] config, body in
-                    await self?.applyConfig(config, body: body)
+                await configManager.start(cachedVersion: cachedVersion, freshness: freshness) { [weak self] in
+                    await self?.applyConfig($0, freshness: $1)
                 }
             }
         }
     }
 
-    private func applyConfig(_ config: SdkConfig, body: String) {
+    /// Foreground trigger; the manager decides whether the cached policy is stale.
+    func refreshConfig() {
+        guard let configManager else { return }
+        Task { await configManager.refresh() }
+    }
+
+    private func applyConfig(_ fetched: (config: SdkConfig, body: String)?, freshness: ConfigFreshness) {
         guard !stopped else { return }
-        prefs.sdkConfigJson = body
+        // A 304 renews the times of the policy it confirmed.
+        guard let body = fetched?.body ?? prefs.sdkConfigCache?.body ?? prefs.legacySdkConfigJson else { return }
+        prefs.sdkConfigCache = CachedSdkConfig(endpoint: configURL, freshness: freshness, body: body)
+        prefs.removeLegacySdkConfig()
+        guard let config = fetched?.config else { return }
         let previousInterval = configBox.value.flushIntervalMs
         configBox.value = (options.sdkConfig ?? SdkConfigOverrides()).resolve(over: config)
         if previousInterval != configBox.value.flushIntervalMs { queue.updateConfig() }

@@ -94,12 +94,19 @@ The SDK starts immediately with its last-known cached policy (or native defaults
 applies valid policy live and caches it for the next launch. Event delivery does not carry
 configuration. The `sdkName` selector makes the backend return the native app policy.
 
+The cached policy carries an expiry bound to the config URL. Init and every app foreground check
+it and fetch only once it has expired, or when there is no cached policy or the URL changed
+(`apiBaseUrl`, `apiConfigPath`, `projectId`): at most one request at a time and one attempt per
+60 seconds. The expiry is `max-age` minus `Age` from the response, clamped to 5 minutes – 24 hours,
+and 1 hour without `max-age`. Requests send the cached policy version as `If-None-Match`; a `304`
+keeps the cached policy and renews its expiry.
+
 Config requests have a 10-second timeout and retry transient network errors, 408, 429 and 5xx
 responses after 1 second and then 3 seconds. A `Retry-After` header suppresses these immediate
-HTTP retries. Other HTTP errors, malformed JSON and missing/empty policy versions wait for the
-next regular refresh. Refresh runs every 10 minutes from the start of the previous refresh,
-independently of its retries; failure keeps the last-known policy. Shutdown cancels config work
-without waiting for it. Public calls, event recording and ingestion keep running during config I/O.
+HTTP retries. Other HTTP errors, malformed JSON and missing/empty policy versions wait for the next
+trigger. Failure keeps the last-known policy and its expiry, so offline starts use the cache (or
+defaults) without delay. Shutdown cancels config work without waiting for it. Public calls, event
+recording and ingestion keep running during config I/O.
 
 Use `apiConfigPath` to mount configuration under a proxy path on the same `apiBaseUrl`:
 

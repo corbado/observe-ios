@@ -104,7 +104,7 @@ private actor GatedTransport: Transporting {
              "retry":{"maxAttempts":3,"baseDelayMs":10,"maxDelayMs":100}}
             """
         await network.release(ConfigResponse(statusCode: 200, body: remote))
-        await eventually { UserDefaults(suiteName: "corbado_observe")?.string(forKey: "cbo_sdk_config") == remote }
+        await eventually { ObservePrefs().sdkConfigCache?.body == remote }
         #expect(tracker.getSessionId() == session)
         tracker.telemetry(level: "info", message: "overridden off")
         tracker.low("remote-disabled")
@@ -147,7 +147,7 @@ private actor GatedTransport: Transporting {
         await tracker.awaitTermination()
         await eventually { GatedConfigURLProtocol.stopped.value.contains(url) }
         #expect(transport.events.map(\.name) == ["during_real_config_request"])
-        #expect(UserDefaults(suiteName: "corbado_observe")?.string(forKey: "cbo_sdk_config") == nil)
+        #expect(ObservePrefs().sdkConfigCache?.body == nil)
     }
 
     @Test func shutdownDoesNotWaitForConfigAndLateResponseCannotWriteCache() async {
@@ -161,7 +161,7 @@ private actor GatedTransport: Transporting {
         tracker.destroy()
         await tracker.awaitTermination()
         await network.release(ConfigResponse(statusCode: 200, body: #"{"version":"late"}"#))
-        #expect(UserDefaults(suiteName: "corbado_observe")?.string(forKey: "cbo_sdk_config") == nil)
+        #expect(ObservePrefs().sdkConfigCache?.body == nil)
     }
 
     @Test func completeOverridesBypassCacheAndFetch() async {
