@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import UIKit
 
 @testable import CorbadoObserve
 
@@ -63,5 +64,27 @@ extension TrackerIntegrationTests {
         #expect(record.body == live)
         #expect(record.freshness.expiresAt - record.freshness.fetchedAt == ConfigManager.defaultTtlMs)
         await core.destroyCore()
+    }
+
+    @Test @MainActor func foregroundRefreshesExpiredConfig() async {
+        await Self.finishLastTracker()
+        let now = Int64(Date().timeIntervalSince1970 * 1000)
+        ObservePrefs().sdkConfigCache = CachedSdkConfig(
+            endpoint: "https://example.invalid/v1/observe/config/pro-test?sdkName=observe-ios",
+            freshness: ConfigFreshness(fetchedAt: now - 1_000, expiresAt: now + 300),
+            body: #"{"version":"cached"}"#)
+        let network = GatedConfigTransport()
+        let tracker = ObserveTracker(
+            options: ObserveOptions(projectId: "pro-test", apiBaseUrl: "https://example.invalid"),
+            transport: CapturingTransport(), configTransport: network)
+        Self.lastTracker.value = tracker
+        tracker.start()
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        #expect(await network.requests == 0)
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+        await eventually { await network.requests == 1 }
+        #expect(await network.entityTags == [#""cached""#])
+        tracker.destroy()
+        await tracker.awaitTermination()
     }
 }
