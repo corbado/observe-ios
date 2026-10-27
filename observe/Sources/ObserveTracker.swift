@@ -81,7 +81,12 @@ public final class ObserveTracker: Sendable {
         // Registered synchronously (NotificationCenter registration is thread-safe and cheap)
         // so destroy() can always unregister; a deferred registration would race it.
         let watcher = AppLifecycleWatcher(
-            onForeground: { [weak self] in self?.post { core in core.checkRotation() } },
+            onForeground: { [weak self] in
+                self?.post { core in
+                    core.checkRotation()
+                    core.refreshConfig()
+                }
+            },
             onBackground: { [weak self] in self?.handleBackground() },
             onResignActive: { [weak self] in self?.autofillEngine.windowBlur() },
             onBecomeActive: { [weak self] in self?.autofillEngine.windowFocus() })

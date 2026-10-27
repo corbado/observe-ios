@@ -29,10 +29,11 @@ private final class ShutdownTransport: Transporting {
 extension TrackerIntegrationTests {
     @Test(arguments: [1, 5], [false, true])
     func shutdownUsesNormalRetryChain(failures: Int, alreadyBackingOff: Bool) async {
-        ObservePrefs().sdkConfigJson = """
+        UserDefaults(suiteName: "corbado_observe")?.set(
+            """
             {"version":"retry-test","flushIntervalMs":60000,
              "retry":{"maxAttempts":3,"baseDelayMs":200,"maxDelayMs":400}}
-            """
+            """, forKey: "cbo_sdk_config")
         let transport = ShutdownTransport(failures: failures)
         let tracker = ObserveTracker(
             options: ObserveOptions(projectId: "pro-test", apiBaseUrl: "https://example.invalid"),
@@ -72,10 +73,11 @@ extension TrackerIntegrationTests {
     }
 
     @Test func replacementWaitsForPriorShutdownBeforeOpeningOutbox() async {
-        ObservePrefs().sdkConfigJson = """
+        UserDefaults(suiteName: "corbado_observe")?.set(
+            """
             {"version":"retry-test","flushIntervalMs":60000,
              "retry":{"maxAttempts":3,"baseDelayMs":200,"maxDelayMs":400}}
-            """
+            """, forKey: "cbo_sdk_config")
         let options = ObserveOptions(projectId: "pro-test", apiBaseUrl: "https://example.invalid")
         let oldTransport = ShutdownTransport(failures: 1)
         let previous = ObserveTracker(options: options, transport: oldTransport)
@@ -100,10 +102,11 @@ extension TrackerIntegrationTests {
         #expect(newTransport.events.map(\.name) == ["replacement"])
     }
     @Test func livePolicyKeepsExistingDeliveryBackoffAndSession() async {
-        ObservePrefs().sdkConfigJson = """
+        UserDefaults(suiteName: "corbado_observe")?.set(
+            """
             {"version":"cached","flushIntervalMs":60000,
              "retry":{"maxAttempts":3,"baseDelayMs":200,"maxDelayMs":400}}
-            """
+            """, forKey: "cbo_sdk_config")
         let network = GatedConfigTransport()
         let transport = ShutdownTransport(failures: 1)
         let tracker = ObserveTracker(
@@ -120,7 +123,7 @@ extension TrackerIntegrationTests {
              "retry":{"maxAttempts":3,"baseDelayMs":0,"maxDelayMs":0}}
             """
         await network.release(ConfigResponse(statusCode: 200, body: body))
-        await eventually { UserDefaults(suiteName: "corbado_observe")?.string(forKey: "cbo_sdk_config") == body }
+        await eventually { ObservePrefs().sdkConfigCache?.body == body }
         tracker.trackCustom("after_policy")
         tracker.flush()
         tracker.destroy()

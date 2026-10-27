@@ -37,7 +37,7 @@ Known, accepted gaps of the iOS Observe SDK versus its Android/web siblings.
   A subsequent `initialize()` queues work until that shutdown completes before opening shared
   storage; those replacement-instance calls are not durable while waiting.
 - Native event durability and session continuity are always enabled; web-only feature switches
-  do not disable them. Config refresh is suspended while iOS suspends the app.
+  do not disable them.
 - Repo-wide SPM versioning; no per-library release tags (unlike `corbado/android`).
 - `Sdk.version` is hand-bumped at release; no build-time injection.
 - No macOS-host `swift build`/`swift test` (UIKit dependency); simulator only.

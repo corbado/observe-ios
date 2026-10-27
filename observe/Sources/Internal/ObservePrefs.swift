@@ -35,11 +35,35 @@ final class ObservePrefs {
         set { defaults.set(Double(newValue), forKey: Self.keyClientEnvHandleTs) }
     }
 
-    /// Last-known remote policy JSON, used immediately on the next start and refreshed independently.
-    var sdkConfigJson: String? {
-        get { defaults.string(forKey: Self.keySdkConfig) }
-        set { defaults.set(newValue, forKey: Self.keySdkConfig) }
+    /// Last-known remote policy with its endpoint and freshness, written as one record so policy
+    /// and times always change together.
+    var sdkConfigCache: CachedSdkConfig? {
+        get {
+            guard let stored = defaults.dictionary(forKey: Self.keySdkConfigCache),
+                let endpoint = stored["endpoint"] as? String,
+                let fetchedAt = (stored["fetchedAt"] as? NSNumber)?.int64Value,
+                let expiresAt = (stored["expiresAt"] as? NSNumber)?.int64Value,
+                let body = stored["config"] as? String
+            else { return nil }
+            return CachedSdkConfig(
+                endpoint: endpoint, freshness: ConfigFreshness(fetchedAt: fetchedAt, expiresAt: expiresAt), body: body)
+        }
+        set {
+            defaults.set(
+                newValue.map {
+                    [
+                        "endpoint": $0.endpoint, "fetchedAt": $0.freshness.fetchedAt,
+                        "expiresAt": $0.freshness.expiresAt, "config": $0.body,
+                    ] as [String: Any]
+                },
+                forKey: Self.keySdkConfigCache)
+        }
     }
+
+    /// Policy JSON cached by SDK versions before `sdkConfigCache`.
+    var legacySdkConfigJson: String? { defaults.string(forKey: Self.keyLegacySdkConfig) }
+
+    func removeLegacySdkConfig() { defaults.removeObject(forKey: Self.keyLegacySdkConfig) }
 
     /// Keyed by project: codes select policies of one project and mean nothing in another.
     func dataPolicy(projectId: String) -> Int? {
@@ -59,6 +83,14 @@ final class ObservePrefs {
     private static let keySessionLastActivity = "cbo_session_activity"
     private static let keyClientEnvHandle = "cbo_client_env_handle"
     private static let keyClientEnvHandleTs = "cbo_client_env_handle_ts"
-    private static let keySdkConfig = "cbo_sdk_config"
+    private static let keyLegacySdkConfig = "cbo_sdk_config"
+    private static let keySdkConfigCache = "cbo_sdk_config_cache"
     private static let keyDataPolicy = "cbo_data_policy_"
+}
+
+struct CachedSdkConfig: Equatable {
+    var endpoint: String
+    var freshness: ConfigFreshness
+    /// Raw server body.
+    var body: String
 }
